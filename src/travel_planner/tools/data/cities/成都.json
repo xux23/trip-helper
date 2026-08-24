@@ -1,0 +1,519 @@
+{
+  "attractions": [
+    {
+      "name": "大熊猫繁育研究基地",
+      "tags": [
+        "亲子",
+        "自然",
+        "户外"
+      ],
+      "price": 55,
+      "duration_hours": 3.5,
+      "indoor": false,
+      "rating": 4.7,
+      "area": "成华区"
+    },
+    {
+      "name": "武侯祠",
+      "tags": [
+        "人文",
+        "博物馆"
+      ],
+      "price": 50,
+      "duration_hours": 2.0,
+      "indoor": true,
+      "rating": 4.6,
+      "area": "武侯区"
+    },
+    {
+      "name": "成都博物馆",
+      "tags": [
+        "博物馆",
+        "人文",
+        "免费"
+      ],
+      "price": 0,
+      "duration_hours": 2.0,
+      "indoor": true,
+      "rating": 4.6,
+      "area": "青羊区"
+    },
+    {
+      "name": "春熙路太古里",
+      "tags": [
+        "购物",
+        "美食",
+        "夜生活",
+        "街区"
+      ],
+      "price": 0,
+      "duration_hours": 2.5,
+      "indoor": false,
+      "rating": 4.6,
+      "area": "锦江区"
+    },
+    {
+      "name": "宽窄巷子",
+      "tags": [
+        "街区",
+        "免费",
+        "美食",
+        "人文"
+      ],
+      "price": 0,
+      "duration_hours": 2.5,
+      "indoor": false,
+      "rating": 4.5,
+      "area": "青羊区"
+    },
+    {
+      "name": "锦里古街",
+      "tags": [
+        "街区",
+        "免费",
+        "美食",
+        "夜生活"
+      ],
+      "price": 0,
+      "duration_hours": 2.0,
+      "indoor": false,
+      "rating": 4.5,
+      "area": "武侯区"
+    },
+    {
+      "name": "杜甫草堂",
+      "tags": [
+        "人文",
+        "博物馆",
+        "公园"
+      ],
+      "price": 50,
+      "duration_hours": 2.0,
+      "indoor": true,
+      "rating": 4.5,
+      "area": "青羊区"
+    },
+    {
+      "name": "人民公园",
+      "tags": [
+        "公园",
+        "免费",
+        "街区"
+      ],
+      "price": 0,
+      "duration_hours": 1.5,
+      "indoor": false,
+      "rating": 4.4,
+      "area": "青羊区"
+    },
+    {
+      "name": "文殊院",
+      "tags": [
+        "人文",
+        "小众",
+        "免费"
+      ],
+      "price": 0,
+      "duration_hours": 1.5,
+      "indoor": false,
+      "rating": 4.4,
+      "area": "青羊区"
+    },
+    {
+      "name": "东郊记忆",
+      "tags": [
+        "小众",
+        "街区",
+        "免费"
+      ],
+      "price": 0,
+      "duration_hours": 2.0,
+      "indoor": false,
+      "rating": 4.3,
+      "area": "成华区"
+    },
+    {
+      "name": "九眼桥酒吧街",
+      "tags": [
+        "夜生活",
+        "小众",
+        "免费"
+      ],
+      "price": 0,
+      "duration_hours": 1.5,
+      "indoor": false,
+      "rating": 4.2,
+      "area": "锦江区"
+    }
+  ],
+  "restaurants": [
+    {
+      "name": "马旺子·川小馆",
+      "tags": [
+        "川菜"
+      ],
+      "price_per_person": 95,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.7,
+      "area": "锦江区"
+    },
+    {
+      "name": "集渔泰式海鲜火锅",
+      "tags": [
+        "泰式",
+        "火锅"
+      ],
+      "price_per_person": 130,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.6,
+      "area": "锦江区"
+    },
+    {
+      "name": "小龙坎火锅春熙店",
+      "tags": [
+        "火锅"
+      ],
+      "price_per_person": 110,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.5,
+      "area": "锦江区"
+    },
+    {
+      "name": "大龙燚火锅",
+      "tags": [
+        "火锅"
+      ],
+      "price_per_person": 120,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.5,
+      "area": "武侯区"
+    },
+    {
+      "name": "成都吃客",
+      "tags": [
+        "川菜",
+        "小众"
+      ],
+      "price_per_person": 95,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.5,
+      "area": "锦江区"
+    },
+    {
+      "name": "皇城老妈火锅",
+      "tags": [
+        "火锅",
+        "老字号"
+      ],
+      "price_per_person": 160,
+      "meals": [
+        "dinner"
+      ],
+      "rating": 4.5,
+      "area": "武侯区"
+    },
+    {
+      "name": "贺记蛋烘糕",
+      "tags": [
+        "小吃"
+      ],
+      "price_per_person": 15,
+      "meals": [
+        "lunch"
+      ],
+      "rating": 4.4,
+      "area": "青羊区"
+    },
+    {
+      "name": "明婷饭店",
+      "tags": [
+        "川菜",
+        "小众"
+      ],
+      "price_per_person": 65,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.4,
+      "area": "金牛区"
+    },
+    {
+      "name": "叶婆婆钵钵鸡",
+      "tags": [
+        "小吃",
+        "川菜"
+      ],
+      "price_per_person": 45,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.4,
+      "area": "武侯区"
+    },
+    {
+      "name": "陈麻婆豆腐总店",
+      "tags": [
+        "川菜",
+        "老字号"
+      ],
+      "price_per_person": 70,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.3,
+      "area": "青羊区"
+    },
+    {
+      "name": "洞子口张老二凉粉",
+      "tags": [
+        "小吃",
+        "老字号"
+      ],
+      "price_per_person": 20,
+      "meals": [
+        "lunch"
+      ],
+      "rating": 4.3,
+      "area": "金牛区"
+    },
+    {
+      "name": "龙抄手春熙路店",
+      "tags": [
+        "小吃",
+        "老字号"
+      ],
+      "price_per_person": 30,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.2,
+      "area": "锦江区"
+    },
+    {
+      "name": "钟水饺",
+      "tags": [
+        "小吃",
+        "老字号"
+      ],
+      "price_per_person": 25,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.2,
+      "area": "青羊区"
+    }
+  ],
+  "hotels": [
+    {
+      "name": "汉庭文殊院店",
+      "tier": "经济型",
+      "price_per_night": 210,
+      "area": "青羊区",
+      "tags": [
+        "近地铁"
+      ]
+    },
+    {
+      "name": "如家天府广场店",
+      "tier": "经济型",
+      "price_per_night": 230,
+      "area": "青羊区",
+      "tags": [
+        "交通方便"
+      ]
+    },
+    {
+      "name": "全季春熙路店",
+      "tier": "舒适型",
+      "price_per_night": 400,
+      "area": "锦江区",
+      "tags": [
+        "近商圈"
+      ]
+    },
+    {
+      "name": "亚朵宽窄巷子店",
+      "tier": "舒适型",
+      "price_per_night": 430,
+      "area": "青羊区",
+      "tags": [
+        "近地铁"
+      ]
+    },
+    {
+      "name": "成都群光君悦酒店",
+      "tier": "高档型",
+      "price_per_night": 980,
+      "area": "锦江区",
+      "tags": [
+        "近商圈"
+      ]
+    },
+    {
+      "name": "博舍The Temple House",
+      "tier": "高档型",
+      "price_per_night": 1200,
+      "area": "锦江区",
+      "tags": [
+        "近商圈",
+        "环境安静"
+      ]
+    }
+  ],
+  "climate": {
+    "1": [
+      {
+        "阴": 0.4,
+        "多云": 0.35,
+        "小雨": 0.15,
+        "晴": 0.1
+      },
+      4,
+      11
+    ],
+    "2": [
+      {
+        "阴": 0.4,
+        "多云": 0.35,
+        "小雨": 0.15,
+        "晴": 0.1
+      },
+      6,
+      13
+    ],
+    "3": [
+      {
+        "多云": 0.35,
+        "阴": 0.35,
+        "小雨": 0.25,
+        "晴": 0.05
+      },
+      10,
+      18
+    ],
+    "4": [
+      {
+        "多云": 0.35,
+        "小雨": 0.3,
+        "阴": 0.25,
+        "晴": 0.1
+      },
+      14,
+      23
+    ],
+    "5": [
+      {
+        "多云": 0.35,
+        "小雨": 0.3,
+        "阴": 0.25,
+        "晴": 0.1
+      },
+      18,
+      27
+    ],
+    "6": [
+      {
+        "小雨": 0.35,
+        "多云": 0.3,
+        "阴": 0.2,
+        "大雨": 0.1,
+        "晴": 0.05
+      },
+      21,
+      29
+    ],
+    "7": [
+      {
+        "小雨": 0.3,
+        "多云": 0.25,
+        "大雨": 0.2,
+        "阴": 0.15,
+        "晴": 0.1
+      },
+      23,
+      31
+    ],
+    "8": [
+      {
+        "多云": 0.3,
+        "小雨": 0.3,
+        "大雨": 0.15,
+        "阴": 0.15,
+        "晴": 0.1
+      },
+      23,
+      31
+    ],
+    "9": [
+      {
+        "阴": 0.3,
+        "小雨": 0.3,
+        "多云": 0.25,
+        "大雨": 0.1,
+        "晴": 0.05
+      },
+      19,
+      26
+    ],
+    "10": [
+      {
+        "阴": 0.35,
+        "小雨": 0.3,
+        "多云": 0.25,
+        "晴": 0.1
+      },
+      15,
+      22
+    ],
+    "11": [
+      {
+        "阴": 0.4,
+        "多云": 0.35,
+        "小雨": 0.15,
+        "晴": 0.1
+      },
+      10,
+      16
+    ],
+    "12": [
+      {
+        "阴": 0.45,
+        "多云": 0.35,
+        "小雨": 0.1,
+        "晴": 0.1
+      },
+      4,
+      11
+    ],
+    "default": [
+      {
+        "阴": 0.35,
+        "小雨": 0.3,
+        "多云": 0.25,
+        "晴": 0.1
+      },
+      15,
+      22
+    ]
+  }
+}

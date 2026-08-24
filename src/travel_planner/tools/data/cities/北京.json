@@ -1,0 +1,511 @@
+{
+  "attractions": [
+    {
+      "name": "故宫博物院",
+      "tags": [
+        "人文",
+        "博物馆"
+      ],
+      "price": 60,
+      "duration_hours": 4.0,
+      "indoor": true,
+      "rating": 4.8,
+      "area": "东城区"
+    },
+    {
+      "name": "国家博物馆",
+      "tags": [
+        "博物馆",
+        "人文",
+        "免费"
+      ],
+      "price": 0,
+      "duration_hours": 3.0,
+      "indoor": true,
+      "rating": 4.8,
+      "area": "东城区"
+    },
+    {
+      "name": "天安门广场",
+      "tags": [
+        "人文",
+        "免费",
+        "观景"
+      ],
+      "price": 0,
+      "duration_hours": 1.5,
+      "indoor": false,
+      "rating": 4.7,
+      "area": "东城区"
+    },
+    {
+      "name": "颐和园",
+      "tags": [
+        "人文",
+        "公园",
+        "自然"
+      ],
+      "price": 30,
+      "duration_hours": 3.0,
+      "indoor": false,
+      "rating": 4.7,
+      "area": "海淀区"
+    },
+    {
+      "name": "八达岭长城",
+      "tags": [
+        "人文",
+        "户外",
+        "观景"
+      ],
+      "price": 40,
+      "duration_hours": 4.0,
+      "indoor": false,
+      "rating": 4.7,
+      "area": "延庆区"
+    },
+    {
+      "name": "天坛公园",
+      "tags": [
+        "人文",
+        "公园"
+      ],
+      "price": 34,
+      "duration_hours": 2.0,
+      "indoor": false,
+      "rating": 4.6,
+      "area": "东城区"
+    },
+    {
+      "name": "雍和宫",
+      "tags": [
+        "人文",
+        "小众"
+      ],
+      "price": 25,
+      "duration_hours": 1.5,
+      "indoor": true,
+      "rating": 4.6,
+      "area": "东城区"
+    },
+    {
+      "name": "中国科学技术馆",
+      "tags": [
+        "亲子",
+        "博物馆"
+      ],
+      "price": 30,
+      "duration_hours": 3.0,
+      "indoor": true,
+      "rating": 4.6,
+      "area": "朝阳区"
+    },
+    {
+      "name": "什刹海",
+      "tags": [
+        "街区",
+        "免费",
+        "夜生活"
+      ],
+      "price": 0,
+      "duration_hours": 2.0,
+      "indoor": false,
+      "rating": 4.5,
+      "area": "西城区"
+    },
+    {
+      "name": "北京动物园",
+      "tags": [
+        "亲子",
+        "自然",
+        "公园"
+      ],
+      "price": 15,
+      "duration_hours": 3.0,
+      "indoor": false,
+      "rating": 4.5,
+      "area": "西城区"
+    },
+    {
+      "name": "三里屯太古里",
+      "tags": [
+        "购物",
+        "夜生活",
+        "街区"
+      ],
+      "price": 0,
+      "duration_hours": 2.5,
+      "indoor": false,
+      "rating": 4.5,
+      "area": "朝阳区"
+    },
+    {
+      "name": "南锣鼓巷",
+      "tags": [
+        "街区",
+        "免费",
+        "美食"
+      ],
+      "price": 0,
+      "duration_hours": 2.0,
+      "indoor": false,
+      "rating": 4.4,
+      "area": "东城区"
+    }
+  ],
+  "restaurants": [
+    {
+      "name": "四季民福烤鸭店",
+      "tags": [
+        "烤鸭"
+      ],
+      "price_per_person": 150,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.8,
+      "area": "东城区"
+    },
+    {
+      "name": "聚宝源涮肉",
+      "tags": [
+        "火锅",
+        "清真"
+      ],
+      "price_per_person": 130,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.7,
+      "area": "西城区"
+    },
+    {
+      "name": "大董烤鸭店",
+      "tags": [
+        "烤鸭"
+      ],
+      "price_per_person": 260,
+      "meals": [
+        "dinner"
+      ],
+      "rating": 4.6,
+      "area": "朝阳区"
+    },
+    {
+      "name": "南门涮肉",
+      "tags": [
+        "火锅"
+      ],
+      "price_per_person": 120,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.5,
+      "area": "东城区"
+    },
+    {
+      "name": "局气",
+      "tags": [
+        "京菜"
+      ],
+      "price_per_person": 100,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.5,
+      "area": "朝阳区"
+    },
+    {
+      "name": "东来顺饭庄",
+      "tags": [
+        "火锅",
+        "老字号"
+      ],
+      "price_per_person": 120,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.4,
+      "area": "西城区"
+    },
+    {
+      "name": "海碗居炸酱面",
+      "tags": [
+        "面食",
+        "京菜"
+      ],
+      "price_per_person": 55,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.4,
+      "area": "海淀区"
+    },
+    {
+      "name": "花家怡园",
+      "tags": [
+        "京菜"
+      ],
+      "price_per_person": 110,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.3,
+      "area": "东城区"
+    },
+    {
+      "name": "全聚德前门店",
+      "tags": [
+        "烤鸭",
+        "老字号"
+      ],
+      "price_per_person": 180,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.4,
+      "area": "东城区"
+    },
+    {
+      "name": "护国寺小吃",
+      "tags": [
+        "小吃",
+        "老字号"
+      ],
+      "price_per_person": 30,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.3,
+      "area": "西城区"
+    },
+    {
+      "name": "姚记炒肝店",
+      "tags": [
+        "小吃"
+      ],
+      "price_per_person": 35,
+      "meals": [
+        "lunch"
+      ],
+      "rating": 4.3,
+      "area": "东城区"
+    },
+    {
+      "name": "庆丰包子铺",
+      "tags": [
+        "小吃"
+      ],
+      "price_per_person": 25,
+      "meals": [
+        "lunch"
+      ],
+      "rating": 4.2,
+      "area": "西城区"
+    }
+  ],
+  "hotels": [
+    {
+      "name": "汉庭王府井店",
+      "tier": "经济型",
+      "price_per_night": 300,
+      "area": "东城区",
+      "tags": [
+        "近地铁"
+      ]
+    },
+    {
+      "name": "如家前门店",
+      "tier": "经济型",
+      "price_per_night": 280,
+      "area": "东城区",
+      "tags": [
+        "交通方便"
+      ]
+    },
+    {
+      "name": "桔子水晶三里屯酒店",
+      "tier": "舒适型",
+      "price_per_night": 580,
+      "area": "朝阳区",
+      "tags": [
+        "近商圈"
+      ]
+    },
+    {
+      "name": "亚朵南锣鼓巷店",
+      "tier": "舒适型",
+      "price_per_night": 520,
+      "area": "东城区",
+      "tags": [
+        "近地铁"
+      ]
+    },
+    {
+      "name": "全季天安门广场店",
+      "tier": "舒适型",
+      "price_per_night": 480,
+      "area": "东城区",
+      "tags": [
+        "近地铁",
+        "近商圈"
+      ]
+    },
+    {
+      "name": "北京饭店",
+      "tier": "高档型",
+      "price_per_night": 950,
+      "area": "东城区",
+      "tags": [
+        "交通方便"
+      ]
+    },
+    {
+      "name": "北京王府井希尔顿",
+      "tier": "高档型",
+      "price_per_night": 1050,
+      "area": "东城区",
+      "tags": [
+        "近商圈"
+      ]
+    }
+  ],
+  "climate": {
+    "1": [
+      {
+        "晴": 0.5,
+        "多云": 0.35,
+        "阴": 0.15
+      },
+      -8,
+      2
+    ],
+    "2": [
+      {
+        "晴": 0.45,
+        "多云": 0.4,
+        "阴": 0.15
+      },
+      -5,
+      5
+    ],
+    "3": [
+      {
+        "晴": 0.4,
+        "多云": 0.4,
+        "阴": 0.2
+      },
+      2,
+      13
+    ],
+    "4": [
+      {
+        "晴": 0.35,
+        "多云": 0.4,
+        "阴": 0.2,
+        "小雨": 0.05
+      },
+      9,
+      21
+    ],
+    "5": [
+      {
+        "晴": 0.4,
+        "多云": 0.35,
+        "阴": 0.2,
+        "小雨": 0.05
+      },
+      15,
+      27
+    ],
+    "6": [
+      {
+        "多云": 0.35,
+        "晴": 0.25,
+        "阴": 0.2,
+        "小雨": 0.15,
+        "大雨": 0.05
+      },
+      20,
+      31
+    ],
+    "7": [
+      {
+        "多云": 0.3,
+        "阴": 0.25,
+        "小雨": 0.3,
+        "大雨": 0.1,
+        "晴": 0.05
+      },
+      23,
+      32
+    ],
+    "8": [
+      {
+        "多云": 0.3,
+        "小雨": 0.3,
+        "阴": 0.2,
+        "大雨": 0.1,
+        "晴": 0.1
+      },
+      22,
+      31
+    ],
+    "9": [
+      {
+        "晴": 0.45,
+        "多云": 0.35,
+        "阴": 0.15,
+        "小雨": 0.05
+      },
+      16,
+      26
+    ],
+    "10": [
+      {
+        "晴": 0.5,
+        "多云": 0.35,
+        "阴": 0.15
+      },
+      9,
+      19
+    ],
+    "11": [
+      {
+        "晴": 0.4,
+        "多云": 0.4,
+        "阴": 0.15,
+        "小雨": 0.05
+      },
+      1,
+      10
+    ],
+    "12": [
+      {
+        "晴": 0.45,
+        "多云": 0.35,
+        "阴": 0.2
+      },
+      -6,
+      3
+    ],
+    "default": [
+      {
+        "晴": 0.5,
+        "多云": 0.35,
+        "阴": 0.15
+      },
+      9,
+      19
+    ]
+  }
+}

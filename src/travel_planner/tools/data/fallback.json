@@ -1,0 +1,298 @@
+{
+  "attractions": [
+    {
+      "name": "市民广场",
+      "tags": [
+        "免费",
+        "街区",
+        "公园"
+      ],
+      "price": 0,
+      "duration_hours": 1.5,
+      "indoor": false,
+      "rating": 4.2,
+      "area": "市中心"
+    },
+    {
+      "name": "城市博物馆",
+      "tags": [
+        "博物馆",
+        "人文",
+        "免费"
+      ],
+      "price": 0,
+      "duration_hours": 2.0,
+      "indoor": true,
+      "rating": 4.4,
+      "area": "市中心"
+    },
+    {
+      "name": "滨江公园",
+      "tags": [
+        "公园",
+        "免费",
+        "户外"
+      ],
+      "price": 0,
+      "duration_hours": 1.5,
+      "indoor": false,
+      "rating": 4.3,
+      "area": "滨江区"
+    },
+    {
+      "name": "地标观光塔",
+      "tags": [
+        "观景"
+      ],
+      "price": 80,
+      "duration_hours": 1.5,
+      "indoor": true,
+      "rating": 4.3,
+      "area": "市中心"
+    },
+    {
+      "name": "历史文化街区",
+      "tags": [
+        "街区",
+        "免费",
+        "人文",
+        "美食"
+      ],
+      "price": 0,
+      "duration_hours": 2.0,
+      "indoor": false,
+      "rating": 4.3,
+      "area": "老城区"
+    },
+    {
+      "name": "市动植物园",
+      "tags": [
+        "自然",
+        "亲子",
+        "公园",
+        "户外"
+      ],
+      "price": 40,
+      "duration_hours": 3.0,
+      "indoor": false,
+      "rating": 4.2,
+      "area": "郊区"
+    },
+    {
+      "name": "中央美食街",
+      "tags": [
+        "美食",
+        "街区",
+        "免费",
+        "夜生活"
+      ],
+      "price": 0,
+      "duration_hours": 1.5,
+      "indoor": false,
+      "rating": 4.3,
+      "area": "市中心"
+    },
+    {
+      "name": "现代美术馆",
+      "tags": [
+        "博物馆",
+        "小众",
+        "免费"
+      ],
+      "price": 0,
+      "duration_hours": 1.5,
+      "indoor": true,
+      "rating": 4.2,
+      "area": "文化区"
+    }
+  ],
+  "restaurants": [
+    {
+      "name": "古城饭庄",
+      "tags": [
+        "地方菜"
+      ],
+      "price_per_person": 85,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.4,
+      "area": "老城区"
+    },
+    {
+      "name": "江畔餐厅",
+      "tags": [
+        "地方菜"
+      ],
+      "price_per_person": 90,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.4,
+      "area": "滨江区"
+    },
+    {
+      "name": "老城根家常菜",
+      "tags": [
+        "地方菜"
+      ],
+      "price_per_person": 60,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.3,
+      "area": "老城区"
+    },
+    {
+      "name": "石锅鱼庄",
+      "tags": [
+        "地方菜"
+      ],
+      "price_per_person": 75,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.3,
+      "area": "滨江区"
+    },
+    {
+      "name": "滨河火锅城",
+      "tags": [
+        "火锅"
+      ],
+      "price_per_person": 110,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.3,
+      "area": "滨江区"
+    },
+    {
+      "name": "巷口小吃集",
+      "tags": [
+        "小吃"
+      ],
+      "price_per_person": 25,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.2,
+      "area": "老城区"
+    },
+    {
+      "name": "甜水面馆",
+      "tags": [
+        "小吃",
+        "面食"
+      ],
+      "price_per_person": 18,
+      "meals": [
+        "lunch"
+      ],
+      "rating": 4.2,
+      "area": "老城区"
+    },
+    {
+      "name": "夜市烧烤大排档",
+      "tags": [
+        "烧烤",
+        "夜生活"
+      ],
+      "price_per_person": 70,
+      "meals": [
+        "dinner"
+      ],
+      "rating": 4.2,
+      "area": "夜市区"
+    },
+    {
+      "name": "西街甜品铺",
+      "tags": [
+        "甜品",
+        "小吃"
+      ],
+      "price_per_person": 20,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.2,
+      "area": "老城区"
+    }
+  ],
+  "hotels": [
+    {
+      "name": "老城青年旅舍",
+      "tier": "经济型",
+      "price_per_night": 150,
+      "area": "老城区",
+      "tags": [
+        "交通方便"
+      ]
+    },
+    {
+      "name": "城市快捷酒店（中心店）",
+      "tier": "经济型",
+      "price_per_night": 180,
+      "area": "市中心",
+      "tags": [
+        "交通方便"
+      ]
+    },
+    {
+      "name": "连锁商务酒店（高铁站店）",
+      "tier": "经济型",
+      "price_per_night": 240,
+      "area": "高铁站",
+      "tags": [
+        "近地铁"
+      ]
+    },
+    {
+      "name": "市中心舒适酒店",
+      "tier": "舒适型",
+      "price_per_night": 420,
+      "area": "市中心",
+      "tags": [
+        "近地铁",
+        "近商圈"
+      ]
+    },
+    {
+      "name": "湖景精品酒店",
+      "tier": "舒适型",
+      "price_per_night": 550,
+      "area": "滨江区",
+      "tags": [
+        "环境安静"
+      ]
+    },
+    {
+      "name": "江景高档酒店",
+      "tier": "高档型",
+      "price_per_night": 880,
+      "area": "滨江区",
+      "tags": [
+        "环境安静"
+      ]
+    }
+  ],
+  "climate": {
+    "default": {
+      "conditions": {
+        "多云": 0.3,
+        "阴": 0.25,
+        "晴": 0.25,
+        "小雨": 0.2
+      },
+      "temp_low": 12,
+      "temp_high": 24
+    }
+  }
+}

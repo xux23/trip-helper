@@ -1,0 +1,501 @@
+{
+  "attractions": [
+    {
+      "name": "秦始皇兵马俑博物馆",
+      "tags": [
+        "人文",
+        "博物馆"
+      ],
+      "price": 120,
+      "duration_hours": 4.0,
+      "indoor": true,
+      "rating": 4.8,
+      "area": "临潼区"
+    },
+    {
+      "name": "陕西历史博物馆",
+      "tags": [
+        "博物馆",
+        "人文",
+        "免费"
+      ],
+      "price": 0,
+      "duration_hours": 3.0,
+      "indoor": true,
+      "rating": 4.8,
+      "area": "雁塔区"
+    },
+    {
+      "name": "西安城墙",
+      "tags": [
+        "人文",
+        "观景",
+        "户外"
+      ],
+      "price": 54,
+      "duration_hours": 2.5,
+      "indoor": false,
+      "rating": 4.7,
+      "area": "碑林区"
+    },
+    {
+      "name": "大唐不夜城",
+      "tags": [
+        "夜生活",
+        "街区",
+        "免费",
+        "观景"
+      ],
+      "price": 0,
+      "duration_hours": 2.5,
+      "indoor": false,
+      "rating": 4.7,
+      "area": "雁塔区"
+    },
+    {
+      "name": "西安碑林博物馆",
+      "tags": [
+        "博物馆",
+        "人文",
+        "小众"
+      ],
+      "price": 65,
+      "duration_hours": 1.5,
+      "indoor": true,
+      "rating": 4.6,
+      "area": "碑林区"
+    },
+    {
+      "name": "大雁塔·大慈恩寺",
+      "tags": [
+        "人文"
+      ],
+      "price": 40,
+      "duration_hours": 1.5,
+      "indoor": false,
+      "rating": 4.5,
+      "area": "雁塔区"
+    },
+    {
+      "name": "钟鼓楼",
+      "tags": [
+        "人文",
+        "观景"
+      ],
+      "price": 50,
+      "duration_hours": 1.5,
+      "indoor": true,
+      "rating": 4.5,
+      "area": "莲湖区"
+    },
+    {
+      "name": "小雁塔（西安博物院）",
+      "tags": [
+        "人文",
+        "博物馆",
+        "免费",
+        "公园"
+      ],
+      "price": 0,
+      "duration_hours": 2.0,
+      "indoor": false,
+      "rating": 4.5,
+      "area": "碑林区"
+    },
+    {
+      "name": "华清宫",
+      "tags": [
+        "人文",
+        "户外"
+      ],
+      "price": 120,
+      "duration_hours": 2.5,
+      "indoor": false,
+      "rating": 4.4,
+      "area": "临潼区"
+    },
+    {
+      "name": "回民街",
+      "tags": [
+        "街区",
+        "免费",
+        "美食",
+        "夜生活"
+      ],
+      "price": 0,
+      "duration_hours": 2.0,
+      "indoor": false,
+      "rating": 4.3,
+      "area": "莲湖区"
+    },
+    {
+      "name": "永兴坊",
+      "tags": [
+        "美食",
+        "街区",
+        "免费"
+      ],
+      "price": 0,
+      "duration_hours": 1.5,
+      "indoor": false,
+      "rating": 4.3,
+      "area": "新城区"
+    }
+  ],
+  "restaurants": [
+    {
+      "name": "醉长安",
+      "tags": [
+        "陕菜"
+      ],
+      "price_per_person": 95,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.5,
+      "area": "碑林区"
+    },
+    {
+      "name": "长安大牌档",
+      "tags": [
+        "陕菜"
+      ],
+      "price_per_person": 90,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.5,
+      "area": "雁塔区"
+    },
+    {
+      "name": "秦豫肉夹馍",
+      "tags": [
+        "小吃",
+        "老字号"
+      ],
+      "price_per_person": 22,
+      "meals": [
+        "lunch"
+      ],
+      "rating": 4.4,
+      "area": "碑林区"
+    },
+    {
+      "name": "志亮灌汤蒸饺",
+      "tags": [
+        "小吃",
+        "清真"
+      ],
+      "price_per_person": 30,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.4,
+      "area": "莲湖区"
+    },
+    {
+      "name": "天发芽何记葫芦头",
+      "tags": [
+        "陕菜",
+        "小众"
+      ],
+      "price_per_person": 60,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.4,
+      "area": "莲湖区"
+    },
+    {
+      "name": "柳巷面",
+      "tags": [
+        "面食",
+        "小吃"
+      ],
+      "price_per_person": 28,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.4,
+      "area": "碑林区"
+    },
+    {
+      "name": "定家小酥肉",
+      "tags": [
+        "小众",
+        "清真"
+      ],
+      "price_per_person": 45,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.4,
+      "area": "莲湖区"
+    },
+    {
+      "name": "老孙家泡馍",
+      "tags": [
+        "小吃",
+        "清真",
+        "老字号"
+      ],
+      "price_per_person": 55,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.4,
+      "area": "碑林区"
+    },
+    {
+      "name": "盛志望麻酱酿皮",
+      "tags": [
+        "小吃",
+        "清真"
+      ],
+      "price_per_person": 15,
+      "meals": [
+        "lunch"
+      ],
+      "rating": 4.3,
+      "area": "莲湖区"
+    },
+    {
+      "name": "同盛祥泡馍",
+      "tags": [
+        "小吃",
+        "清真",
+        "老字号"
+      ],
+      "price_per_person": 60,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.3,
+      "area": "莲湖区"
+    },
+    {
+      "name": "西安饭庄",
+      "tags": [
+        "陕菜",
+        "老字号"
+      ],
+      "price_per_person": 110,
+      "meals": [
+        "lunch",
+        "dinner"
+      ],
+      "rating": 4.3,
+      "area": "碑林区"
+    },
+    {
+      "name": "樊记肉夹馍",
+      "tags": [
+        "小吃",
+        "老字号"
+      ],
+      "price_per_person": 25,
+      "meals": [
+        "lunch"
+      ],
+      "rating": 4.3,
+      "area": "碑林区"
+    }
+  ],
+  "hotels": [
+    {
+      "name": "汉庭永兴坊店",
+      "tier": "经济型",
+      "price_per_night": 200,
+      "area": "新城区",
+      "tags": [
+        "交通方便"
+      ]
+    },
+    {
+      "name": "如家钟楼店",
+      "tier": "经济型",
+      "price_per_night": 220,
+      "area": "莲湖区",
+      "tags": [
+        "近地铁"
+      ]
+    },
+    {
+      "name": "全季大雁塔店",
+      "tier": "舒适型",
+      "price_per_night": 380,
+      "area": "雁塔区",
+      "tags": [
+        "近景区"
+      ]
+    },
+    {
+      "name": "亚朵钟楼店",
+      "tier": "舒适型",
+      "price_per_night": 420,
+      "area": "莲湖区",
+      "tags": [
+        "近地铁"
+      ]
+    },
+    {
+      "name": "西安香格里拉",
+      "tier": "高档型",
+      "price_per_night": 780,
+      "area": "雁塔区",
+      "tags": [
+        "环境安静"
+      ]
+    },
+    {
+      "name": "西安凯悦酒店",
+      "tier": "高档型",
+      "price_per_night": 850,
+      "area": "碑林区",
+      "tags": [
+        "近商圈"
+      ]
+    }
+  ],
+  "climate": {
+    "1": [
+      {
+        "晴": 0.4,
+        "多云": 0.35,
+        "阴": 0.25
+      },
+      -4,
+      5
+    ],
+    "2": [
+      {
+        "晴": 0.35,
+        "多云": 0.4,
+        "阴": 0.25
+      },
+      -1,
+      9
+    ],
+    "3": [
+      {
+        "多云": 0.35,
+        "晴": 0.3,
+        "阴": 0.25,
+        "小雨": 0.1
+      },
+      6,
+      15
+    ],
+    "4": [
+      {
+        "多云": 0.35,
+        "晴": 0.3,
+        "小雨": 0.2,
+        "阴": 0.15
+      },
+      12,
+      22
+    ],
+    "5": [
+      {
+        "晴": 0.35,
+        "多云": 0.35,
+        "小雨": 0.2,
+        "阴": 0.1
+      },
+      16,
+      27
+    ],
+    "6": [
+      {
+        "晴": 0.3,
+        "多云": 0.3,
+        "小雨": 0.2,
+        "阴": 0.15,
+        "大雨": 0.05
+      },
+      21,
+      33
+    ],
+    "7": [
+      {
+        "多云": 0.25,
+        "小雨": 0.25,
+        "晴": 0.2,
+        "大雨": 0.15,
+        "阴": 0.15
+      },
+      24,
+      35
+    ],
+    "8": [
+      {
+        "晴": 0.25,
+        "多云": 0.25,
+        "小雨": 0.25,
+        "大雨": 0.15,
+        "阴": 0.1
+      },
+      23,
+      34
+    ],
+    "9": [
+      {
+        "多云": 0.3,
+        "小雨": 0.3,
+        "阴": 0.2,
+        "晴": 0.15,
+        "大雨": 0.05
+      },
+      18,
+      26
+    ],
+    "10": [
+      {
+        "多云": 0.35,
+        "晴": 0.3,
+        "小雨": 0.2,
+        "阴": 0.15
+      },
+      12,
+      21
+    ],
+    "11": [
+      {
+        "晴": 0.35,
+        "多云": 0.35,
+        "阴": 0.2,
+        "小雨": 0.1
+      },
+      5,
+      13
+    ],
+    "12": [
+      {
+        "晴": 0.4,
+        "多云": 0.35,
+        "阴": 0.25
+      },
+      -2,
+      6
+    ],
+    "default": [
+      {
+        "多云": 0.35,
+        "晴": 0.3,
+        "小雨": 0.2,
+        "阴": 0.15
+      },
+      12,
+      21
+    ]
+  }
+}
