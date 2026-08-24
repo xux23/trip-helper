@@ -6,11 +6,48 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import sys
+from pathlib import Path
 
+
+def _ensure_runtime() -> None:
+    """一键启动自举：若当前解释器缺少依赖（如系统 python），自动改用项目
+    .venv 或 uv run 重新执行本文件，使 `python main.py` / 双击可直接运行。"""
+    try:
+        import pydantic  # noqa: F401
+
+        return
+    except ImportError:
+        pass
+    here = Path(__file__).resolve()
+    project_root = here.parents[2]
+    for cand in (
+        project_root / ".venv" / "Scripts" / "python.exe",
+        project_root / ".venv" / "bin" / "python",
+    ):
+        if cand.exists():
+            os.execv(str(cand), [str(cand), str(here), *sys.argv[1:]])
+    uv = shutil.which("uv")
+    if uv:
+        os.execv(uv, [uv, "run", "python", str(here), *sys.argv[1:]])
+
+
+import shutil  # noqa: E402  (在 _ensure_runtime 使用，延迟到此处导入)
+
+_ensure_runtime()
+
+# 直接 `python src/travel_planner/main.py` 时，把包根目录（src）加入 sys.path，
+# 使 travel_planner.* 绝对导入可用。
+_SRC_ROOT = str(Path(__file__).resolve().parents[1])
+if _SRC_ROOT not in sys.path:
+    sys.path.insert(0, _SRC_ROOT)
+
+from travel_planner import config
 from travel_planner.agents.budget import BudgetAgent
 from travel_planner.llm import make_llm_client
-from travel_planner.orchestrator import PlanState, plan
+from travel_planner.orchestrator import PlanEvent, PlanState, stream_plan
+from travel_planner.tools.amap import QuotaExhaustedError, QuotaTracker
 
 WEATHER_ICON = {"晴": "☀", "多云": "⛅", "阴": "☁", "小雨": "🌦", "大雨": "🌧"}
 
@@ -102,6 +139,41 @@ def render_report(report) -> list[str]:
     if report.note:
         lines.append(f"  备注：{report.note}")
     return lines
+
+
+def stream_print(text: str) -> None:
+    """逐行流式打印，每行立即刷新，营造边生成边输出的效果。"""
+    for line in text.splitlines():
+        print(line)
+        sys.stdout.flush()
+
+
+def render_search_list(results, city: str, keyword: str, source: str) -> str:
+    """搜索模式结果渲染：名称（免费/估算价，区域，评分，标签）。"""
+    lines = [f"🔎 {city}「{keyword or '景点'}」搜索结果（{len(results)} 条）"]
+    if source == "fallback":
+        lines.append("* 高德在线查询失败，以下为通用兜底数据")
+    for i, a in enumerate(results, 1):
+        price = "免费" if a.price == 0 else f"{a.price} 元（估算）"
+        tags = "/".join(a.tags[:3]) or "无标签"
+        area = a.area or "区域未知"
+        lines.append(f"{i:>2}. {a.name}（{price}，{area}，评分 {a.rating}，{tags}）")
+    return "\n".join(lines)
+
+
+def print_request_summary(request) -> None:
+    prefs = "、".join(request.preferences) if request.preferences else "无特殊偏好"
+    parts = [
+        f"  ➤ 目的地：{request.destination}",
+        f"  ➤ 天数：{request.days} 天",
+        f"  ➤ 人均预算：{request.budget} 元",
+        f"  ➤ 偏好：{prefs}",
+    ]
+    if request.departure_city:
+        parts.append(f"  ➤ 出发城市：{request.departure_city}")
+    if request.date:
+        parts.append(f"  ➤ 日期：{request.date}")
+    stream_print("\n".join(parts))
 
 
 MENU = """
@@ -232,9 +304,19 @@ async def _amain(argv: list[str]) -> int:
         )
         return 1
 
+    # 高德在线数据源：无 Key 打警告继续（走通用兜底）；配额耗尽则直接停止
+    if not config.AMAP_KEY:
+        print("⚠ 未配置 AMAP_KEY，将使用通用兜底数据，推荐效果有限。请在 .env 添加高德 Key。")
+    else:
+        exhausted = QuotaTracker(config.AMAP_QUOTA_FILE, config.amap_daily_limits()).exhausted_services()
+        if exhausted:
+            print("高德免费配额已用完（今日超限服务：" + "、".join(exhausted) + "），程序停止。")
+            print("请明天再试，或在 .env 调整 AMAP_DAILY_LIMIT_* 后重启。")
+            return 3
+
     print("=" * 56)
     print("智能旅行规划助手 · 一句话输入，得到完整行程单")
-    print('示例："国庆去成都玩3天，预算3000，喜欢美食"')
+    print('示例："国庆去成都玩3天，预算3000，喜欢美食" 或 "找成都免费景点"')
     print("=" * 56)
 
     if argv:
@@ -246,21 +328,53 @@ async def _amain(argv: list[str]) -> int:
         return 1
 
     io = CLI()
+    state: PlanState | None = None
     try:
-        state = await plan(user_input, llm, io)
+        async for event in stream_plan(user_input, llm, io):
+            if event.stage == "stage":
+                print(event.payload)
+                sys.stdout.flush()
+            elif event.stage == "request":
+                print_request_summary(event.payload)
+            elif event.stage == "done":
+                state = event.payload
+    except QuotaExhaustedError as e:  # 配额耗尽：停止整个程序（用户约定）
+        print(f"\n{e}")
+        print("高德免费配额已用完，程序停止。请明天再试，或在 .env 调整 AMAP_DAILY_LIMIT_* 后重启。")
+        return 3
     except Exception as e:  # 文档第 9 章：LLM 故障给出可操作的提示
         print(f"规划失败：{e}")
         print("请检查 LLM_BASE_URL / LLM_API_KEY 配置与网络连接后重试。")
         return 1
 
+    if state is None:
+        print("未能生成行程")
+        return 1
+
+    if state.search_results is not None:  # 搜索模式：渲染结果列表，无调整循环
+        stream_print(
+            render_search_list(
+                state.search_results,
+                state.request.destination,
+                state.request.search_keyword,
+                state.search_source,
+            )
+        )
+        return 0
+
     print()
-    print(render_itinerary(state))
+    stream_print(render_itinerary(state))
     adjustment_loop(state, io)
     return 0
 
 
 def cli() -> None:
-    sys.exit(asyncio.run(_amain(sys.argv[1:])))
+    try:
+        sys.exit(asyncio.run(_amain(sys.argv[1:])))
+    except KeyboardInterrupt:
+        # Ctrl+C 时干净退出，不把 asyncio 内部的 CancelledError 栈打印给用户
+        print("\n已取消")
+        sys.exit(130)
 
 
 if __name__ == "__main__":

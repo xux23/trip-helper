@@ -1,12 +1,20 @@
-"""编排器端到端单测：stub LLM 离线跑通主流程、预算回环、追问流程。"""
+"""编排器端到端单测：stub LLM 离线跑通主流程、预算回环、追问流程。
+
+plan() 全链路会调用工具层，这里统一注入 canned_tools（conftest），
+杜绝真实高德网络调用，且与 chengdu_itin_json 的候选数据保持一致。
+"""
 
 import asyncio
+
+import pytest
 
 from travel_planner import config
 from travel_planner.orchestrator import SilentIO, plan
 from travel_planner.schemas import TravelRequest
 from tests.conftest import StubLLM, extract_response, fetch_chengdu_state, template_compose
 from travel_planner.agents.planner import Planner
+
+pytestmark = pytest.mark.usefixtures("canned_tools")
 
 
 class FakeAskIO(SilentIO):

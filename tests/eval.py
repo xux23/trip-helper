@@ -25,8 +25,7 @@ from travel_planner.agents.planner import parse_json_text  # noqa: E402
 from travel_planner.llm import make_llm_client  # noqa: E402
 from travel_planner.orchestrator import SilentIO, plan  # noqa: E402
 from travel_planner.schemas import Itinerary, TravelRequest, build_travel_request  # noqa: E402
-from travel_planner.tools.loader import load_city  # noqa: E402
-from travel_planner.tools.weather import climate_entry, make_weather  # noqa: E402
+from travel_planner.tools.weather import fallback_climate, make_weather  # noqa: E402
 
 CASES_PATH = Path(__file__).parent / "eval_cases.json"
 
@@ -62,20 +61,38 @@ def load_cases(limit: int | None) -> list[dict]:
 
 
 def synth_weather(request: TravelRequest) -> list[dict]:
-    """评估打分用的逐日天气（与 Info 工具同源、确定性）。"""
+    """评估打分用的逐日天气（通用气候兜底生成，确定性）。"""
     from travel_planner.agents.info import build_dates
 
     rows = []
-    try:
-        for i, d in enumerate(build_dates(request.date, request.days)):
-            rows.append(make_weather(request.destination, d, i, climate_entry(request.destination, d)))
-    except Exception:
-        pass
+    for i, d in enumerate(build_dates(request.date, request.days)):
+        rows.append(make_weather(request.destination, d, i, fallback_climate()))
     return rows
 
 
-def score(itinerary_dict: dict | None, request: TravelRequest, weather: list[dict]) -> list[str]:
-    """文档 11.2 的 10 项 checklist，返回每项是否通过。全部可自动判定。"""
+def pools_from_results(results: list) -> dict[str, dict]:
+    """从规划产出的 InfoResults 构建 名称→{tags, indoor} 参照表（打分用）。"""
+    pools: dict[str, dict] = {}
+    for r in results:
+        for item in r.data:
+            pools[item["name"]] = {
+                "tags": item.get("tags", []),
+                "indoor": item.get("indoor", True),
+            }
+    return pools
+
+
+def score(
+    itinerary_dict: dict | None,
+    request: TravelRequest,
+    weather: list[dict],
+    pools: dict[str, dict] | None = None,
+) -> list[str]:
+    """文档 11.2 的 10 项 checklist，返回每项是否通过。全部可自动判定。
+
+    pools 为 名称→{tags, indoor} 参照表（多 Agent 路径传规划候选池；基线无数据
+    传 None，涉及偏好/室内的检查项按保守记 0）。
+    """
     checks: list[bool] = []
 
     def fail_all_from(n: int):
@@ -136,44 +153,34 @@ def score(itinerary_dict: dict | None, request: TravelRequest, weather: list[dic
                 r_names.append(meals[m]["name"])
     checks.append(len(a_names) == len(set(a_names)) and len(r_names) == len(set(r_names)))
 
-    # 7 偏好命中次数 ≥ days（无偏好记 1 分）
+    # 7 偏好命中次数 ≥ days（无候选池记 0 分，保守）
     if request.preferences:
         pref_set = set(request.preferences)
         hits = 0
-        try:
-            book = load_city(request.destination)
-            pools = {
-                x["name"]: x.get("tags", [])
-                for section in ("attractions", "restaurants")
-                for x in book[section]
-            }
-            for name in a_names + r_names:
-                if pref_set & set(pools.get(name, [])):
-                    hits += 1
-        except Exception:
-            pass
+        if pools:
+            hits = sum(
+                1
+                for name in a_names + r_names
+                if pref_set & set(pools.get(name, {}).get("tags", []))
+            )
         checks.append(hits >= request.days)
     else:
         checks.append(True)
 
-    # 8 雨天不安排纯户外景点（无雨天记 1 分）
+    # 8 雨天不安排纯户外景点（无雨天记 1 分；无候选池且雨天记 0 分）
     rain_days = [w for w in weather if w.get("rain")]
     if not rain_days:
         checks.append(True)
+    elif pools is None:
+        checks.append(False)
     else:
-        try:
-            indoor_map = {
-                x["name"]: x["indoor"] for x in load_city(request.destination)["attractions"]
-            }
-            bad = any(
-                indoor_map.get(name, True) is False
-                for d in days
-                for k in ("morning", "afternoon")
-                if isinstance(d.get(k), dict) and (name := (d[k].get("attraction") or {}).get("name"))
-            )
-            checks.append(not bad)
-        except Exception:
-            checks.append(False)
+        bad = any(
+            pools.get(name, {}).get("indoor", True) is False
+            for d in days
+            for k in ("morning", "afternoon")
+            if isinstance(d.get(k), dict) and (name := (d[k].get("attraction") or {}).get("name"))
+        )
+        checks.append(not bad)
 
     # 9 每天景点总时长 ≤8h
     durations_ok = bool(days)
@@ -202,7 +209,8 @@ async def eval_agent_case(llm, case: dict) -> dict:
     try:
         ctx = await plan(case["text"], llm, SilentIO())
         weather_dicts = [w.model_dump() for w in ctx.weather]
-        scores = score(ctx.itinerary.model_dump(), ctx.request, weather_dicts)
+        pools = pools_from_results(ctx.results)
+        scores = score(ctx.itinerary.model_dump(), ctx.request, weather_dicts, pools)
         row.update(
             elapsed=round(time.monotonic() - start, 2),
             status=ctx.report.status,

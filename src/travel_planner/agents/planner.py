@@ -51,15 +51,19 @@ EXTRACT_SYSTEM_PROMPT = """你是一个旅行需求解析器。任务：从用�
 - budget：人均预算，整数，单位元。没有则输出 null（默认 3000）。"穷游"映射为 800。
 - departure_city：出发城市。没有则输出 null。
 - date：出发日期，格式 YYYY-MM-DD。节日换算为当年日期（国庆→10-01，五一→05-01）；只说月份按当月 1 号；没有则输出 null。
-- preferences：偏好列表，只能从这些值里选：美食、人文、自然、亲子、购物、夜生活、小众。没有则输出 []。
+- preferences：偏好列表，只能从这些值里选：美食、人文、自然、亲子、购物、夜生活、小众、免费。没有则输出 []。
 - party_size：同行人数，整数。"我们/情侣/两个人"等都算 2。默认 1。
+- search_keyword：用户想要"搜索/查找/找某类景点"而不是生成完整行程时，输出搜索关键词（如"免费""博物馆""公园"），"免费"表示只看免费景点；其他情况输出 null。
 
 示例：
 输入：国庆和女朋友去成都玩3天，预算3000，喜欢吃火锅
-输出：{{"destination":"成都","days":3,"budget":3000,"departure_city":null,"date":"2026-10-01","preferences":["美食"],"party_size":2}}
+输出：{{"destination":"成都","days":3,"budget":3000,"departure_city":null,"date":"2026-10-01","preferences":["美食"],"party_size":2,"search_keyword":null}}
 
 输入：五一从武汉去长沙，带娃，2天
-输出：{{"destination":"长沙","days":2,"budget":null,"departure_city":"武汉","date":"2026-05-01","preferences":["亲子"],"party_size":1}}"""
+输出：{{"destination":"长沙","days":2,"budget":null,"departure_city":"武汉","date":"2026-05-01","preferences":["亲子"],"party_size":1,"search_keyword":null}}
+
+输入：找成都免费的景点
+输出：{{"destination":"成都","days":null,"budget":null,"departure_city":null,"date":null,"preferences":[],"party_size":1,"search_keyword":"免费"}}"""
 
 EXTRACT_RETRY_TEMPLATE = """你上一次的输出不合法，校验错误：
 {error}
@@ -229,7 +233,7 @@ class Planner:
     ) -> Itinerary:
         pools = self._collect_pools(results)
         self._pools = pools  # 预算调整与人工替换要用同一份候选池
-        data_source = "fallback" if any(r.source == "fallback" for r in results) else "local"
+        data_source = "fallback" if any(r.source == "fallback" for r in results) else "online"
 
         user_msg = COMPOSE_USER_TEMPLATE.format(
             request=request.model_dump_json(indent=2),
@@ -485,7 +489,7 @@ def template_compose(
     pools: CandidatePools,
     weather: list[Weather],
     *,
-    data_source: str = "local",
+    data_source: str = "online",
 ) -> Itinerary:
     """代码模板编排：按评分降序装箱、雨天优先室内、每天 2 景点 + 午晚餐各 1 家。"""
     if not pools.hotels or not pools.restaurants or not pools.attractions:

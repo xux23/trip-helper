@@ -43,19 +43,29 @@ class LLMClient(Protocol):
 
 
 class OpenAICompatClient:
-    """网络错误/超时自动重试 1 次（文档第 9 章）。SDK 自身重试关掉，统一在这里控制。"""
+    """网络错误/超时自动重试 1 次（文档第 9 章）。SDK 自身重试关掉，统一在这里控制。
+
+    惰性初始化：openai 包与客户端都在首次 chat() 时才创建。import openai 在
+    Windows 冷启动约 1 秒，若放在构造路径会让 CLI 横幅迟迟不出现，故延迟到
+    真正调用 LLM 时（此时用户已看到进度提示，感知不到等待）。
+    """
 
     def __init__(self) -> None:
-        from openai import AsyncOpenAI
-
         self.model = config.LLM_MODEL
         self.usage = UsageStats()
-        self._client = AsyncOpenAI(
-            base_url=config.LLM_BASE_URL,
-            api_key=config.LLM_API_KEY,
-            max_retries=0,
-            timeout=60,
-        )
+        self._client: Any | None = None  # 首次 chat() 时懒创建
+
+    def _raw_client(self) -> Any:
+        if self._client is None:
+            from openai import AsyncOpenAI
+
+            self._client = AsyncOpenAI(
+                base_url=config.LLM_BASE_URL,
+                api_key=config.LLM_API_KEY,
+                max_retries=0,
+                timeout=60,
+            )
+        return self._client
 
     async def chat(
         self, messages: list[dict[str, str]], *, temperature: float, max_tokens: int
@@ -65,7 +75,7 @@ class OpenAICompatClient:
         last_err: Exception | None = None
         for attempt in range(2):
             try:
-                resp: Any = await self._client.chat.completions.create(
+                resp: Any = await self._raw_client().chat.completions.create(
                     model=self.model,
                     messages=messages,
                     temperature=temperature,

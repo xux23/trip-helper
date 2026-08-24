@@ -1,17 +1,20 @@
-"""确定性模拟天气（文档 5.3 / 6.2 节）。
+"""在线天气（文档 5.3 / 6.2 节）：高德 4 天预报，超出/失败用通用气候兜底。
 
-生成规则：seed = sha256(city + date)，按"城市-月份气候表"的权重选 condition，
-温度在气候表区间内取整。同一 city+date 永远得到相同结果。
-不用内置 hash()——它跨进程随机化，无法满足可复现要求。
+流程：城市名 → geocode 拿 adcode → weatherInfo 拿 casts（约 4 天）。
+请求日期超出预报范围时复用最后一天的预报；天气文本按词表映射到
+schema 的 5 种 condition。兜底气候沿用确定性生成（sha256 种子），保证可复现。
 """
 
 from __future__ import annotations
 
-import hashlib
-import random
 from typing import Any
 
-from travel_planner.tools.loader import ToolResult, load_city, maybe_fail
+from travel_planner.tools import amap
+from travel_planner.tools.loader import ToolResult, load_fallback, maybe_fail
+
+
+def fallback_climate() -> dict[str, Any]:
+    return _normalize_climate(load_fallback()["climate"]["default"])
 
 
 def _normalize_climate(entry: Any) -> dict[str, Any]:
@@ -21,27 +24,11 @@ def _normalize_climate(entry: Any) -> dict[str, Any]:
     return entry
 
 
-def climate_entry(city: str, date: str | None) -> dict[str, Any]:
-    """返回某城市某月（或当月/默认）的气候条目。日期未定时按当月典型值。
-
-    城市未知时抛 CityNotFoundError，由 Info Agent 决定改用 fallback 气候表。
-    """
-    data = load_city(city)
-    month = (date or "")[5:7].lstrip("0") or None
-    entry = data["climate"].get(month) if month else None
-    if entry is None:
-        entry = data["climate"]["default"]
-    return _normalize_climate(entry)
-
-
-def fallback_climate() -> dict[str, Any]:
-    from travel_planner.tools.loader import load_fallback
-
-    return _normalize_climate(load_fallback()["climate"]["default"])
-
-
 def make_weather(city: str, date: str | None, index: int, climate: dict[str, Any]) -> dict[str, Any]:
-    """按气候表确定性生成一天的天气。"""
+    """按气候表确定性生成一天的天气（兜底路径用，可复现）。"""
+    import hashlib
+    import random
+
     seed_key = f"{city}|{date or f'unknown-{index}'}"
     rng = random.Random(int(hashlib.sha256(seed_key.encode()).hexdigest(), 16))
     conditions: dict[str, float] = climate["conditions"]
@@ -63,7 +50,17 @@ def make_weather(city: str, date: str | None, index: int, climate: dict[str, Any
 
 
 async def get_weather(city: str, dates: list[str | None]) -> ToolResult:
-    """按 destination + 日期逐天生成天气。dates 元素为 YYYY-MM-DD 或 None。"""
+    """在线逐日天气。dates 元素为 YYYY-MM-DD 或 None。失败由 Info Agent 兜底。"""
     maybe_fail("get_weather")
-    out = [make_weather(city, d, i, climate_entry(city, d)) for i, d in enumerate(dates)]
-    return ToolResult(source="local", data=out)
+    client = amap.make_amap_client()
+    adcode = await client.geocode(city)
+    casts = await client.forecast(adcode)
+    if not casts:
+        raise amap.AmapError("天气接口无预报数据")
+    by_date = {str(c.get("date")): c for c in casts if c.get("date")}
+    first = casts[0]
+    out = []
+    for d in dates:
+        cast = by_date.get(d) if d else None
+        out.append(amap.make_weather_from_cast(city, d, cast or first))
+    return ToolResult(source="online", data=out)

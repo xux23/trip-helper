@@ -1,6 +1,6 @@
 # Prompt 设计文档
 
-> 版本：v1.0（2026-08-23）
+> 版本：v1.1（2026-08-24）
 > 本文档定义系统中**全部两处** LLM 调用的 Prompt 定稿。代码 `agents/planner.py` 中的 Prompt 必须与本文一致，修改 Prompt 先改本文。
 > 全系统仅此两处调用 LLM，其余环节均为确定性代码（见《技术设计文档》3.2 节）。
 
@@ -33,15 +33,19 @@
 - budget：人均预算，整数，单位元。没有则输出 null（默认 3000）。"穷游"映射为 800。
 - departure_city：出发城市。没有则输出 null。
 - date：出发日期，格式 YYYY-MM-DD。节日换算为当年日期（国庆→10-01，五一→05-01）；只说月份按当月 1 号；没有则输出 null。
-- preferences：偏好列表，只能从这些值里选：美食、人文、自然、亲子、购物、夜生活、小众。没有则输出 []。
+- preferences：偏好列表，只能从这些值里选：美食、人文、自然、亲子、购物、夜生活、小众、免费。没有则输出 []。
 - party_size：同行人数，整数。"我们/情侣/两个人"等都算 2。默认 1。
+- search_keyword：用户想要"搜索/查找/找某类景点"而不是生成完整行程时，输出搜索关键词（如"免费""博物馆""公园"），"免费"表示只看免费景点；其他情况输出 null。
 
 示例：
 输入：国庆和女朋友去成都玩3天，预算3000，喜欢吃火锅
-输出：{"destination":"成都","days":3,"budget":3000,"departure_city":null,"date":"2026-10-01","preferences":["美食"],"party_size":2}
+输出：{"destination":"成都","days":3,"budget":3000,"departure_city":null,"date":"2026-10-01","preferences":["美食"],"party_size":2,"search_keyword":null}
 
 输入：五一从武汉去长沙，带娃，2天
-输出：{"destination":"长沙","days":2,"budget":null,"departure_city":"武汉","date":"2026-05-01","preferences":["亲子"],"party_size":1}
+输出：{"destination":"长沙","days":2,"budget":null,"departure_city":"武汉","date":"2026-05-01","preferences":["亲子"],"party_size":1,"search_keyword":null}
+
+输入：找成都免费的景点
+输出：{"destination":"成都","days":null,"budget":null,"departure_city":null,"date":null,"preferences":[],"party_size":1,"search_keyword":"免费"}
 ```
 
 ### 1.2 User Message
@@ -64,6 +68,8 @@
 - "穷游"→ budget 800 这类映射只做两个（穷游 800、"豪华/高档"5000），其余靠模型理解，避免规则膨胀。
 - `destination` 为 null 时**不重试**，直接进入 CLI 追问流程（问目的地后重新抽取一次，此时可带上已知字段）。
 - days 解析出 0 或 >7 时，代码层钳制到 [1,7] 并提示用户，不在 Prompt 里处理。
+- `search_keyword` 非 null 时进入**搜索模式**（U6）：只在线搜景点列表，不拆任务不编排；
+  关键词含"免费"时过滤出免费倾向景点。搜索模式下 days/budget 缺失不追问。
 
 ---
 

@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 # ---- 枚举常量（与文档 5.2 / 5.3 节一致）----
 
-PREFERENCES = ["美食", "人文", "自然", "亲子", "购物", "夜生活", "小众"]
+PREFERENCES = ["美食", "人文", "自然", "亲子", "购物", "夜生活", "小众", "免费"]
 ATTRACTION_EXTRA_TAGS = ["免费", "街区", "公园", "博物馆", "观景", "户外"]
 HOTEL_TIERS = ["经济型", "舒适型", "高档型"]
 WEATHER_CONDITIONS = ["晴", "多云", "阴", "小雨", "大雨"]
@@ -38,6 +38,7 @@ class ExtractedRequest(BaseModel):
     date: str | None = None
     preferences: list[str] | None = None
     party_size: int | None = None
+    search_keyword: str | None = None
 
     @field_validator("date")
     @classmethod
@@ -48,7 +49,11 @@ class ExtractedRequest(BaseModel):
 
 
 class TravelRequest(BaseModel):
-    """规范化后的旅行需求（5.2 节）。destination 必填；days 钳制在 [1,7]。"""
+    """规范化后的旅行需求（5.2 节）。destination 必填；days 钳制在 [1,7]。
+
+    search_keyword 非 null 时表示"搜索模式"：只找某类景点（如"免费""博物馆"），
+    不生成完整行程。
+    """
 
     destination: str
     days: int = Field(default=3, ge=1, le=7)
@@ -57,6 +62,7 @@ class TravelRequest(BaseModel):
     date: str | None = None
     preferences: list[str] = Field(default_factory=list)
     party_size: int = Field(default=1, ge=1)
+    search_keyword: str | None = None
 
 
 def build_travel_request(raw: ExtractedRequest) -> tuple[TravelRequest, list[str]]:
@@ -84,6 +90,7 @@ def build_travel_request(raw: ExtractedRequest) -> tuple[TravelRequest, list[str
         date=raw.date,
         preferences=prefs,
         party_size=max(raw.party_size or 1, 1),
+        search_keyword=raw.search_keyword,
     )
     return req, notices
 
@@ -143,7 +150,7 @@ class Weather(BaseModel):
 class InfoResult(BaseModel):
     task_id: str
     type: Literal["attractions", "food", "hotels"]
-    source: Literal["local", "fallback"]
+    source: Literal["online", "fallback"]
     data: list[dict[str, Any]]
     error: str | None = None
 
@@ -232,7 +239,7 @@ class Itinerary(BaseModel):
 
 
 class ItineraryMeta(BaseModel):
-    data_source: Literal["local", "fallback"] = "local"
+    data_source: Literal["online", "fallback"] = "online"
     adjust_rounds: int = 0
     degraded: bool = False
 

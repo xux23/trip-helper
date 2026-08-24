@@ -86,7 +86,7 @@ def test_compose_llm_path_canonicalizes():
     llm = StubLLM([template_itin.model_dump_json()])
     out = run(Planner(llm).compose_itinerary(request, results, weather))
     assert out.meta.degraded is False  # LLM 主路径成功
-    assert out.meta.data_source == "local"
+    assert out.meta.data_source == "online"
     pool_names = {a.name for a in pools.attractions}
     for day in out.days:
         for a in day.attractions():

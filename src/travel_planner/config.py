@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 
 def _load_dotenv() -> None:
@@ -53,6 +54,34 @@ LOG_ENVELOPES = os.environ.get("LOG_ENVELOPES", "") == "1"
 TOOL_TIMEOUT_SECONDS = 3.0  # 本地工具其实很快；保留真实 API 的行为形状
 TOOL_RETRY_TIMES = 1  # 失败重试次数
 SIMULATE_FAILURE_RATE = 0.5  # SIMULATE_TOOL_FAILURE=1 时抛错概率
+
+
+# ---- 高德在线数据源（文档第 6 章）----
+
+AMAP_KEY = os.environ.get("AMAP_KEY", "")
+AMAP_BASE_URL = os.environ.get("AMAP_BASE_URL", "https://restapi.amap.com/v3")
+
+# 每日免费配额上限：按服务计数，超限后整个程序停止（见 tools/amap.py QuotaTracker）。
+# 默认值为保守估算，请与你的 Key 实际免费档位核对后调整。
+AMAP_DAILY_LIMIT_SEARCH = int(os.environ.get("AMAP_DAILY_LIMIT_SEARCH", "3000"))
+AMAP_DAILY_LIMIT_GEOCODE = int(os.environ.get("AMAP_DAILY_LIMIT_GEOCODE", "1000"))
+AMAP_DAILY_LIMIT_WEATHER = int(os.environ.get("AMAP_DAILY_LIMIT_WEATHER", "1000"))
+
+# 两次高德调用最小间隔（秒）：个人 Key QPS≈3，节流避免误撞限流与配额。
+AMAP_CALL_INTERVAL = float(os.environ.get("AMAP_CALL_INTERVAL", "0.4"))
+
+# 配额计数持久化文件（跨进程/重启有效，已 gitignore）
+AMAP_QUOTA_FILE = os.environ.get(
+    "AMAP_QUOTA_FILE", str(Path(__file__).resolve().parents[2] / ".amap_quota.json")
+)
+
+
+def amap_daily_limits() -> dict[str, int]:
+    return {
+        "search": AMAP_DAILY_LIMIT_SEARCH,
+        "geocode": AMAP_DAILY_LIMIT_GEOCODE,
+        "weather": AMAP_DAILY_LIMIT_WEATHER,
+    }
 
 
 # ---- 编排 ----
