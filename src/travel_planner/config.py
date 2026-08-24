@@ -8,6 +8,32 @@ from __future__ import annotations
 
 import os
 
+
+def _load_dotenv() -> None:
+    """极小 .env 加载器：不引入第三方依赖。
+
+    项目根目录的 .env 仅用于本地开发配置（已在 .gitignore 忽略）。
+    环境变量已存在时以环境为准，不覆盖。
+    """
+    env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "..", ".env")
+    try:
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, _, value = line.partition("=")
+                key, value = key.strip(), value.strip()
+                if value and (value[0] in "\"'" and value[-1] == value[0]):
+                    value = value[1:-1]
+                if key and key not in os.environ:
+                    os.environ[key] = value
+    except FileNotFoundError:
+        pass
+
+
+_load_dotenv()
+
 # ---- LLM 三件套：OpenAI 兼容服务商通用 ----
 
 LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://api.openai.com/v1")

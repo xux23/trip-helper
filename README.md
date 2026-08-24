@@ -16,9 +16,14 @@ Agent 之间用 JSON（pydantic 强校验）传结构化数据，预算超标自
 uv sync
 
 # 2. 配置任意 OpenAI 兼容服务商
-export LLM_BASE_URL="https://api.example.com/v1"
+# 方式 A：写入项目根目录 .env（已纳入 .gitignore，不入库）
+#   LLM_BASE_URL="https://apihub.agnes-ai.com/v1"
+#   LLM_API_KEY="sk-..."
+#   LLM_MODEL="agnes-2.5-flash"
+# 方式 B：环境变量
+export LLM_BASE_URL="https://apihub.agnes-ai.com/v1"
 export LLM_API_KEY="sk-..."
-export LLM_MODEL="gpt-4o-mini"
+export LLM_MODEL="agnes-2.5-flash"
 
 # 3. 启动 CLI
 uv run travel-planner
