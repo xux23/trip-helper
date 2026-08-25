@@ -101,14 +101,13 @@ def test_missing_days_and_budget_asked_then_used():
     assert len(state.itinerary.days) == 5
 
 
-def test_silent_io_uses_defaults():
-    llm_responses = [
-        extract_response(days=None, budget=None),
-        chengdu_itin_json(),
-    ]
-    state = build_state("去成都玩几天", llm_responses, SilentIO())
-    assert state.request.days == 3
-    assert state.request.budget == 3000
+def test_unclear_request_without_answers_raises():
+    """要求不清晰（缺天数/预算）且追问无果 → 不开始安排，抛 UnclearRequest。"""
+    from travel_planner.orchestrator import UnclearRequest
+
+    llm_responses = [extract_response(days=None, budget=None)]
+    with pytest.raises(UnclearRequest):
+        build_state("去成都玩", llm_responses, SilentIO())
 
 
 def test_envelope_logging(monkeypatch, capsys):

@@ -74,3 +74,14 @@ def test_envelope_shape():
 def test_travel_request_rejects_zero_budget():
     with pytest.raises(ValidationError):
         TravelRequest(destination="成都", budget=0)
+
+
+def test_total_budget_converted_to_per_person():
+    """用户说"总预算"→ 除以人数换算人均，并明确告知。"""
+    raw = ExtractedRequest.model_validate(
+        {"destination": "武汉", "days": 1, "budget": 100, "budget_total": True, "party_size": 2}
+    )
+    req, notices = build_travel_request(raw)
+    assert req.budget == 50
+    assert req.party_size == 2
+    assert any("人均预算 50" in n for n in notices)

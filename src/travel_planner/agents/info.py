@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 
 from travel_planner import config
 from travel_planner.schemas import Attraction, InfoResult, SubTask, SubTaskFilters, TravelRequest, Weather
-from travel_planner.tools import food, hotel, poi, search as _search_tool
+from travel_planner.tools import food, hotel, poi, search as _search_tool, web as _web_tool
 from travel_planner.tools.amap import QuotaExhaustedError
 from travel_planner.tools.loader import load_fallback
 from travel_planner.tools.weather import fallback_climate, get_weather, make_weather
@@ -71,6 +71,20 @@ class InfoAgent:
                 e,
             )
             return items.attractions(), "fallback"
+
+    async def web_info(self, city: str, keyword: str) -> tuple[list[dict], str]:
+        """免费网页搜索：拉取"城市+关键词+攻略"的网上摘录，供不确定时参考。
+
+        失败/无结果 → ([], "fallback")，绝不中断搜索流程。
+        """
+        query = f"{city}{keyword}旅游攻略" if keyword else f"{city}旅游攻略"
+        try:
+            raw = await _call_with_retry(_web_tool.search_web, query)
+            return list(raw["data"]), raw["source"]
+        except QuotaExhaustedError:
+            raise
+        except Exception:
+            return [], "fallback"
 
     async def _run_task(self, task: SubTask) -> InfoResult:
         try:

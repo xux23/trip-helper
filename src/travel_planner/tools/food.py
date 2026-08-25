@@ -1,7 +1,7 @@
 """美食查询工具（文档 6.2 节）：在线高德"餐饮服务"搜索，按评分降序取候选。
 
-高德会把带餐饮的宾馆/酒店也标成"餐饮服务"，用 amap.is_hotelish 过滤掉，
-避免行程里出现"酒店当餐厅"。
+高德会把带餐饮的宾馆（is_hotelish）和奶茶/甜品店（is_meal_shop）也标成
+"餐饮服务"，两者都过滤掉，避免行程里出现"酒店当餐厅"或"蜜雪冰城当晚餐"。
 """
 
 from __future__ import annotations
@@ -14,6 +14,10 @@ async def get_restaurants(city: str, count: int) -> ToolResult:
     maybe_fail("get_restaurants")
     client = amap.make_amap_client()
     pois = await client.search_pois(city, types="餐饮服务", offset=25)
-    items = [amap.map_restaurant(p) for p in pois if not amap.is_hotelish(p)]
+    items = [
+        amap.map_restaurant(p)
+        for p in pois
+        if not amap.is_hotelish(p) and amap.is_meal_shop(p)
+    ]
     ranked = sorted(items, key=lambda r: r["rating"], reverse=True)
     return ToolResult(source="online", data=ranked[:count])

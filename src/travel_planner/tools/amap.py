@@ -334,6 +334,7 @@ def map_attraction(poi: dict[str, Any]) -> dict[str, Any]:
         "name": name,
         "tags": tags,
         "price": price,
+        "student_price": round(price * 0.5) if price > 0 else None,  # 景区普遍学生半价
         "duration_hours": estimate_duration_hours(text),
         "indoor": is_indoor(text),
         "rating": _rating(_biz_ext(poi).get("rating"), 4.5),
@@ -356,6 +357,18 @@ def is_hotelish(poi: dict[str, Any]) -> bool:
     return any(w in text for w in HOTELISH_WORDS)
 
 
+# 奶茶/甜品/饮品等不算正餐，从餐厅候选过滤（否则会排出"蜜雪冰城当晚餐"这种行程）
+NON_MEAL_WORDS = (
+    "奶茶", "茶饮", "饮品", "甜品", "蛋糕", "面包", "咖啡", "冰淇淋",
+    "果汁", "蜜雪冰城", "喜茶", "奈雪", "一点点", "沪上阿姨", "瑞幸", "星巴克",
+)
+
+
+def is_meal_shop(poi: dict[str, Any]) -> bool:
+    text = f"{poi.get('name') or ''} {poi.get('type') or ''} {poi.get('keytag') or ''}"
+    return not any(w in text for w in NON_MEAL_WORDS)
+
+
 def map_restaurant(poi: dict[str, Any]) -> dict[str, Any]:
     name = str(poi.get("name") or "未知餐厅")
     cost = _ext_float(poi, "cost") or 60  # 缺失人均按 60 元估算
@@ -367,6 +380,7 @@ def map_restaurant(poi: dict[str, Any]) -> dict[str, Any]:
         "name": name,
         "tags": tags,
         "price_per_person": round(cost),
+        "groupon_price": round(cost * 0.85),  # 美团/大众点评团购套餐普遍 8~9 折
         "meals": ["lunch", "dinner"],  # 在线数据无餐段信息，默认午晚餐都供
         "rating": _rating(_biz_ext(poi).get("rating"), 4.3),
         "area": str(poi.get("business_area") or poi.get("adname") or ""),

@@ -56,12 +56,19 @@ class BudgetAgent:
         city_transport = config.CITY_TRANSPORT_PER_DAY * days
         lodging = itinerary.hotel.price_per_night * (days - 1)
 
+        student = bool(request.student)
         food_cost = config.BREAKFAST_PER_DAY * days
         for day in itinerary.days:
             for r in day.restaurants():
-                food_cost += r.price_per_person
+                # 学生/穷游：餐饮按团购价估算
+                food_cost += (r.groupon_price or r.price_per_person) if student else r.price_per_person
 
-        tickets = sum(a.price for day in itinerary.days for a in day.attractions())
+        # 学生/穷游：门票按学生票（半价）估算
+        tickets = sum(
+            (a.student_price if student and a.student_price is not None else a.price)
+            for day in itinerary.days
+            for a in day.attractions()
+        )
 
         subtotal = intercity + city_transport + lodging + food_cost + tickets
         misc = round(subtotal * config.MISC_RATE)
@@ -96,7 +103,27 @@ class BudgetAgent:
                 )
             )
 
-        # 优先级 2：付费景点按票价降序，最多替换 2 个
+        # 优先级 2：正餐偏贵 → 换平价特色店（穷游：餐费每天必花，比门票更伤预算）
+        pricey = sorted(
+            (
+                r
+                for day in itinerary.days
+                for r in day.restaurants()
+                if r.price_per_person > config.FOOD_MEAL_BUDGET
+            ),
+            key=lambda r: r.price_per_person,
+            reverse=True,
+        )
+        for r in pricey[:2]:
+            suggestions.append(
+                Suggestion(
+                    action="replace_expensive_restaurant",
+                    target=r.name,
+                    reason=f"人均 {r.price_per_person} 元偏贵，可换平价特色店",
+                )
+            )
+
+        # 优先级 3：付费景点按票价降序，最多替换 2 个
         paid = sorted(
             (a for day in itinerary.days for a in day.attractions() if a.price > 0),
             key=lambda a: a.price,
@@ -111,7 +138,7 @@ class BudgetAgent:
                 )
             )
 
-        # 优先级 3：前两条都不适用仍超标 → 压缩每天景点数
+        # 优先级 4：前面都没有可调整项仍超标 → 压缩每天景点数
         if not suggestions:
             suggestions.append(
                 Suggestion(

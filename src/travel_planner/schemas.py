@@ -34,11 +34,13 @@ class ExtractedRequest(BaseModel):
     destination: str | None = None
     days: int | None = None
     budget: int | None = None
+    budget_total: bool = False  # True 表示用户说的是"总预算"，代码除以人数换算人均
     departure_city: str | None = None
     date: str | None = None
     preferences: list[str] | None = None
     party_size: int | None = None
     search_keyword: str | None = None
+    student: bool | None = None  # 用户提到 学生/大学生/穷游/学生党 → true
 
     @field_validator("date")
     @classmethod
@@ -63,6 +65,7 @@ class TravelRequest(BaseModel):
     preferences: list[str] = Field(default_factory=list)
     party_size: int = Field(default=1, ge=1)
     search_keyword: str | None = None
+    student: bool = False  # 学生/穷游出行：预算按学生票、团购价估算
 
 
 def build_travel_request(raw: ExtractedRequest) -> tuple[TravelRequest, list[str]]:
@@ -77,7 +80,12 @@ def build_travel_request(raw: ExtractedRequest) -> tuple[TravelRequest, list[str
         clamped = min(max(raw.days, 1), 7)
         notices.append(f"游玩天数 {raw.days} 超出范围，已按 {clamped} 天处理")
         days = clamped
+    party_size = max(raw.party_size or 1, 1)
     budget = raw.budget or 3000
+    if raw.budget_total:
+        # 用户说"总预算 N 元"：除以人数换算人均，并明确告知
+        budget = max(round(budget / party_size), 1)
+        notices.append(f"总预算 {raw.budget} 元按 {party_size} 人换算，人均预算 {budget} 元")
     prefs = [p for p in (raw.preferences or []) if p in PREFERENCES]
     dropped = set(raw.preferences or []) - set(prefs)
     if dropped:
@@ -89,8 +97,9 @@ def build_travel_request(raw: ExtractedRequest) -> tuple[TravelRequest, list[str
         departure_city=raw.departure_city,
         date=raw.date,
         preferences=prefs,
-        party_size=max(raw.party_size or 1, 1),
+        party_size=party_size,
         search_keyword=raw.search_keyword,
+        student=bool(raw.student),
     )
     return req, notices
 
@@ -115,6 +124,7 @@ class Attraction(BaseModel):
     name: str
     tags: list[str] = Field(default_factory=list)
     price: int = Field(ge=0)
+    student_price: int | None = None  # 学生票（付费景点普遍半价）；免费景点为 None
     duration_hours: float = Field(gt=0)
     indoor: bool
     rating: float = Field(ge=4.0, le=5.0)
@@ -125,6 +135,7 @@ class Restaurant(BaseModel):
     name: str
     tags: list[str] = Field(default_factory=list)
     price_per_person: int = Field(gt=0)
+    groupon_price: int | None = None  # 团购/套餐人均（约门市价 8.5 折）
     meals: list[Literal["lunch", "dinner"]]
     rating: float = Field(ge=4.0, le=5.0)
     area: str
@@ -252,7 +263,8 @@ Itinerary.model_rebuild()
 
 
 SuggestionAction = Literal[
-    "downgrade_hotel", "replace_paid_attraction", "reduce_daily_activities", "none"
+    "downgrade_hotel", "replace_paid_attraction", "replace_expensive_restaurant",
+    "reduce_daily_activities", "none"
 ]
 
 

@@ -19,11 +19,11 @@ from travel_planner.schemas import InfoResult, TravelRequest, Weather
 _ATTRACTIONS = [
     {"name": "宽窄巷子", "tags": ["街区", "免费", "美食"], "price": 0, "duration_hours": 2.5, "indoor": False, "rating": 4.6, "area": "青羊区"},
     {"name": "成都博物馆", "tags": ["博物馆", "免费"], "price": 0, "duration_hours": 2.0, "indoor": True, "rating": 4.6, "area": "青羊区"},
-    {"name": "武侯祠", "tags": ["人文", "博物馆"], "price": 50, "duration_hours": 2.0, "indoor": True, "rating": 4.6, "area": "武侯区"},
-    {"name": "大熊猫基地", "tags": ["亲子", "自然"], "price": 55, "duration_hours": 3.5, "indoor": False, "rating": 4.7, "area": "成华区"},
+    {"name": "武侯祠", "tags": ["人文", "博物馆"], "price": 50, "student_price": 25, "duration_hours": 2.0, "indoor": True, "rating": 4.6, "area": "武侯区"},
+    {"name": "大熊猫基地", "tags": ["亲子", "自然"], "price": 55, "student_price": 28, "duration_hours": 3.5, "indoor": False, "rating": 4.7, "area": "成华区"},
     {"name": "春熙路", "tags": ["购物", "街区"], "price": 0, "duration_hours": 2.5, "indoor": False, "rating": 4.5, "area": "锦江区"},
     {"name": "人民公园", "tags": ["公园", "免费"], "price": 0, "duration_hours": 2.0, "indoor": False, "rating": 4.4, "area": "青羊区"},
-    {"name": "杜甫草堂", "tags": ["人文", "自然"], "price": 50, "duration_hours": 2.5, "indoor": False, "rating": 4.5, "area": "青羊区"},
+    {"name": "杜甫草堂", "tags": ["人文", "自然"], "price": 50, "student_price": 25, "duration_hours": 2.5, "indoor": False, "rating": 4.5, "area": "青羊区"},
     {"name": "锦里", "tags": ["街区", "美食", "夜生活"], "price": 0, "duration_hours": 2.0, "indoor": False, "rating": 4.5, "area": "武侯区"},
     {"name": "四川博物院", "tags": ["博物馆", "免费"], "price": 0, "duration_hours": 2.0, "indoor": True, "rating": 4.5, "area": "青羊区"},
     {"name": "东郊记忆", "tags": ["街区", "小众"], "price": 0, "duration_hours": 3.0, "indoor": False, "rating": 4.3, "area": "成华区"},
@@ -113,11 +113,13 @@ def extract_response(**overrides) -> str:
         "destination": "成都",
         "days": 3,
         "budget": 3000,
+        "budget_total": False,
         "departure_city": None,
         "date": None,
         "preferences": [],
         "party_size": 1,
         "search_keyword": None,
+        "student": False,
     }
     payload.update(overrides)
     return json.dumps(payload, ensure_ascii=False)

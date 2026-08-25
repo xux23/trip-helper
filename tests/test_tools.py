@@ -132,6 +132,19 @@ def test_restaurants_filter_out_hotelish(monkeypatch):
     assert [r["name"] for r in out["data"]] == ["陈麻婆豆腐"]
 
 
+def test_restaurants_filter_out_non_meal_shops(monkeypatch):
+    """奶茶/甜品/饮品店不算正餐，不能进餐厅候选（否则会排出"蜜雪冰城当晚餐"）。"""
+    from travel_planner.tools import food
+
+    milk_tea = poi_fixture("蜜雪冰城(旗舰店)", "奶茶", "050400", biz_extra={"cost": "26.00"})
+    meal = poi_fixture("文亮火锅", "火锅", "050117", biz_extra={"cost": "80.00"})
+    assert amap.is_meal_shop(milk_tea) is False
+    assert amap.is_meal_shop(meal) is True
+    use_fake(monkeypatch, FakeAmap(pois=[milk_tea, meal]))
+    out = asyncio.run(food.get_restaurants("成都", 5))
+    assert [r["name"] for r in out["data"]] == ["文亮火锅"]
+
+
 def test_map_hotel_tier_heuristic():
     assert amap.map_hotel(poi_fixture("如家快捷酒店", "快捷酒店", "100100"))["tier"] == "经济型"
     assert amap.map_hotel(poi_fixture("全季酒店", "全季酒店", "100100"))["tier"] == "舒适型"

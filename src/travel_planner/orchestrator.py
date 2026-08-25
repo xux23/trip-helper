@@ -40,6 +40,8 @@ class PlanState:
     report: object | None = None
     search_results: list | None = None
     search_source: str | None = None
+    web_hits: list | None = None  # 免费网页搜索摘录（搜索模式不确定时的参考）
+    web_source: str | None = None
 
 
 @dataclass
@@ -59,8 +61,22 @@ def _log(envelope: Envelope) -> None:
         )
 
 
+class UnclearRequest(Exception):
+    """追问后需求仍不明确（缺天数/预算），不开始安排。"""
+
+
+_MISSING_LABEL = {"days": "天数", "budget": "预算"}
+
+
+def _missing_names(missing: set[str]) -> str:
+    return "、".join(_MISSING_LABEL.get(f, f) for f in sorted(missing))
+
+
 class SilentIO:
-    """非交互 IO：追问一律走默认值，提示静默收集（评估脚本用）。"""
+    """非交互 IO：追问返回空、提示静默收集（评估脚本用）。
+
+    模糊需求（缺天数/预算且无回答）会触发 UnclearRequest 中止，不静默用默认值。
+    """
 
     def __init__(self) -> None:
         self.messages: list[str] = []
@@ -93,13 +109,13 @@ async def stream_plan(user_input: str, llm: LLMClient, io=None) -> AsyncIterator
     info = InfoAgent()
     budget = BudgetAgent()
 
-    yield PlanEvent("stage", "🔍 正在理解您的旅行需求…")
+    yield PlanEvent("stage", "🤔 先看看你想怎么玩…")
 
     # ① 需求理解：目的地缺失时追问一次，补全后重新抽取（FR1 / U3）
     try:
         outcome: ExtractionOutcome = await planner.extract_request(user_input)
     except MissingDestination as e:
-        answer = (ask("没有识别到目的地，请问您想去哪个城市？") or "").strip()
+        answer = (ask("没认出你想去的城市，想去哪儿？") or "").strip()
         if not answer:
             raise ExtractError("缺少目的地，无法继续规划") from e
         outcome = await planner.re_extract_with_destination(user_input, answer)
@@ -111,25 +127,43 @@ async def stream_plan(user_input: str, llm: LLMClient, io=None) -> AsyncIterator
 
     # ②' 搜索模式：只搜景点列表，不拆任务不编排（输入即搜索，U-搜索 用例）
     if request.search_keyword is not None:
-        yield PlanEvent("stage", f"🔎 正在搜索 {request.destination} 的「{request.search_keyword}」景点…")
+        yield PlanEvent("stage", f"🔎 正在帮你找 {request.destination}「{request.search_keyword}」景点…")
         attrs, source = await info.search(request.destination, request.search_keyword)
+        web_hits, web_source = await info.web_info(request.destination, request.search_keyword)
         state = PlanState(
             request=request,
             planner=planner,
             search_results=attrs,
             search_source=source,
+            web_hits=web_hits,
+            web_source=web_source,
         )
         yield PlanEvent("done", state)
         return
 
-    # ② 缺失字段追问一次（天数/预算），带默认值；天数钳制在 [1,7]
-    if "days" in outcome.missing_fields:
-        raw = _parse_int(ask(f"游玩几天？（直接回车默认 {request.days} 天）"))
-        request.days = min(max(raw, 1), 7) if raw else request.days
-        _notify(io, f"本次行程按 {request.days} 天安排")
-    if "budget" in outcome.missing_fields:
-        raw = _parse_int(ask(f"人均预算多少元？（直接回车默认 {request.budget} 元）"))
-        request.budget = raw if raw and raw > 0 else request.budget
+    # ② 缺失字段追问：要求不清晰不开始安排（不静默用默认值），最多问 3 轮
+    missing = set(outcome.missing_fields)
+    for _ in range(3):
+        if "days" in missing:
+            raw = _parse_int(ask("打算玩几天？"))
+            if raw:
+                request.days = min(max(raw, 1), 7)  # 天数钳制在 [1,7]
+                missing.discard("days")
+                _notify(io, f"好的，按 {request.days} 天安排")
+        if "budget" in missing:
+            raw = _parse_int(ask("人均预算大概多少（元）？"))
+            if raw and raw > 0:
+                request.budget = raw
+                missing.discard("budget")
+                _notify(io, f"好的，预算按 {request.budget} 元")
+        if not missing:
+            break
+        _notify(io, f"还差：{_missing_names(missing)}，说清楚才能开始安排")
+    if missing:
+        raise UnclearRequest(
+            f"需求不明确：缺少{_missing_names(missing)}，无法安排行程。"
+            "请说明天数与预算，例如「去成都玩3天，预算2000」"
+        )
 
     # ③ 子任务拆解：纯代码
     tasks = planner.make_subtasks(request)
@@ -142,7 +176,7 @@ async def stream_plan(user_input: str, llm: LLMClient, io=None) -> AsyncIterator
         )
     )
 
-    yield PlanEvent("stage", f"📋 已规划至 {request.destination}，正在查询景点 / 美食 / 酒店…")
+    yield PlanEvent("stage", f"📋 正在查询 {request.destination} 的景点、美食和酒店…")
 
     # ④ 信息获取：超时→重试→兜底
     results, weather = await info.run(tasks, request)
@@ -150,7 +184,7 @@ async def stream_plan(user_input: str, llm: LLMClient, io=None) -> AsyncIterator
         _log(wrap_msg("info_result", "info", "planner", r))
     yield PlanEvent("info", results)
 
-    yield PlanEvent("stage", "🗺 正在编排每日行程…")
+    yield PlanEvent("stage", "🗺 正在安排每天的行程…")
 
     # ⑤ 行程编排：LLM（失败降级为代码模板）
     itinerary = await planner.compose_itinerary(request, results, weather)
@@ -166,7 +200,8 @@ async def stream_plan(user_input: str, llm: LLMClient, io=None) -> AsyncIterator
         report = budget.check(request, itinerary)
 
     if report.status == "over":
-        report.note = f"预算过紧，最低可行预算约 {report.estimated_total} 元"
+        # 回环后仍超标 = 最低可行配置都超预算，CLI 不输出行程，改为提示"预算不现实"
+        report.note = f"预算过紧：按最低配置（经济酒店+免费景点+压缩行程）估算仍约需 {report.estimated_total} 元/人"
     _log(wrap_msg("budget_report", "budget", "orchestrator", report))
 
     state = PlanState(

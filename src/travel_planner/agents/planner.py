@@ -12,6 +12,7 @@ from datetime import date
 
 from pydantic import ValidationError
 
+from .. import config
 from ..llm import LLMClient
 from ..schemas import (
     Attraction,
@@ -43,17 +44,27 @@ EXTRACT_SYSTEM_PROMPT = """你是一个旅行需求解析器。任务：从用�
 
 今天是 {today}（用于换算"国庆""五一"等节日为具体日期）。
 
+用户说话很口语化，可能有方言、省略和隐含义，请按常识合理推断：
+- 偏好线索："带娃/遛娃" → 亲子；"吃/火锅/小吃/美食" → 美食；"爬山/自然/看海" → 自然；
+  "逛街/购物" → 购物；"酒吧/夜生活/夜景" → 夜生活；"免费/不花钱" → 免费。
+- 人数："一个人" → 1；"我们/情侣/两个人/俩" → 2；"一家三口/带爸妈" → 3；没提 → 1。
+- 人群："学生/大学生/学生党/穷游" → student 填 true（按学生票、团购价安排行程）；没提 → false。
+- 预算："穷游/学生党/大学生/穷玩/预算不多/预算有限/预算紧张" → 800；"轻奢/豪华/高档" → 5000；
+  说"总预算/一共 N 元/总共" → budget 填总数、budget_total 填 true（代码会除以人数换算人均）。
+
 只输出一个 JSON 对象，不要输出任何解释、markdown 代码块标记或其他文字。
 
 字段规则：
 - destination：城市名。输入中没有明确城市时输出 null。
-- days：游玩天数，整数。没有则输出 null（由代码填默认值 3）。
-- budget：人均预算，整数，单位元。没有则输出 null（默认 3000）。"穷游"映射为 800。
+- days：游玩天数，整数。没有则输出 null（由代码填默认值 3）。"耍/玩/待几天"里的数字要提取出来。
+- budget：人均预算，整数，单位元。没有则输出 null（默认 3000）。"穷游/学生党/预算不多"映射为 800。
+- budget_total：用户说的是"总预算/一共 N 元/总共"时输出 true（budget 填总数），否则 false 或省略。
 - departure_city：出发城市。没有则输出 null。
 - date：出发日期，格式 YYYY-MM-DD。节日换算为当年日期（国庆→10-01，五一→05-01）；只说月份按当月 1 号；没有则输出 null。
 - preferences：偏好列表，只能从这些值里选：美食、人文、自然、亲子、购物、夜生活、小众、免费。没有则输出 []。
 - party_size：同行人数，整数。"我们/情侣/两个人"等都算 2。默认 1。
 - search_keyword：用户想要"搜索/查找/找某类景点"而不是生成完整行程时，输出搜索关键词（如"免费""博物馆""公园"），"免费"表示只看免费景点；其他情况输出 null。
+- student：用户是学生/穷游出行时输出 true，否则 false 或省略。
 
 示例：
 输入：国庆和女朋友去成都玩3天，预算3000，喜欢吃火锅
@@ -63,7 +74,16 @@ EXTRACT_SYSTEM_PROMPT = """你是一个旅行需求解析器。任务：从用�
 输出：{{"destination":"长沙","days":2,"budget":null,"departure_city":"武汉","date":"2026-05-01","preferences":["亲子"],"party_size":1,"search_keyword":null}}
 
 输入：找成都免费的景点
-输出：{{"destination":"成都","days":null,"budget":null,"departure_city":null,"date":null,"preferences":[],"party_size":1,"search_keyword":"免费"}}"""
+输出：{{"destination":"成都","days":null,"budget":null,"departure_city":null,"date":null,"preferences":[],"party_size":1,"search_keyword":"免费"}}
+
+输入：俩人去重庆吃火锅，耍3天
+输出：{{"destination":"重庆","days":3,"budget":null,"departure_city":null,"date":null,"preferences":["美食"],"party_size":2,"search_keyword":null}}
+
+输入：学生党北京穷游5天
+输出：{{"destination":"北京","days":5,"budget":800,"budget_total":false,"departure_city":null,"date":null,"preferences":[],"party_size":1,"search_keyword":null,"student":true}}
+
+输入：我们俩去武汉一天，总预算100
+输出：{{"destination":"武汉","days":1,"budget":100,"budget_total":true,"departure_city":null,"date":null,"preferences":[],"party_size":2,"search_keyword":null}}"""
 
 EXTRACT_RETRY_TEMPLATE = """你上一次的输出不合法，校验错误：
 {error}
@@ -74,7 +94,10 @@ EXTRACT_RETRY_TEMPLATE = """你上一次的输出不合法，校验错误：
 # Prompt B：行程编排（prompt设计.md 2.1 节，逐字一致）
 # ============================================================================
 
-COMPOSE_SYSTEM_PROMPT = """你是一名行程规划师。根据给定的候选数据和约束，编排一份按天的行程。
+COMPOSE_SYSTEM_PROMPT = """你是一名行程规划师，要像一位熟悉当地的朋友一样安排行程：节奏舒服、顺路、不赶场。
+你服务的多是预算有限但想玩尽兴的年轻人（穷游学生党）。信条：**穷游但不穷玩**——
+能省的地方省（交通、住宿、非特色景点），该花的地方花（当地特色美食、必打卡地标），
+把有限的钱花在刀刃上。根据给定的候选数据和约束，编排一份按天的行程。
 
 硬性规则（违反任何一条即为失败）：
 1. 景点、餐厅、酒店只能从候选列表中选，原样复制字段，不得编造或改名。
@@ -86,6 +109,17 @@ COMPOSE_SYSTEM_PROMPT = """你是一名行程规划师。根据给定的候选�
 7. 与 preferences 标签匹配的候选优先安排。
 8. 全程只选 1 家酒店。
 9. 只输出一个 JSON 对象，不要输出任何解释或 markdown 标记。
+
+像真人一样规划（在不违反上面规则的前提下）：
+- 节奏别太满：上午一个点、下午一个点最舒服，景点之间留出吃饭、赶路的时间，不要贪多。
+- 用餐就近：午餐尽量在上午景点的区域，晚餐尽量在下午景点或晚上活动地附近。
+- 正餐别糊弄：午餐晚餐选正餐类餐厅（火锅/川菜/面馆/家常菜等），别拿奶茶、甜品、饮品店当一顿饭。
+- 别来回折腾：同一天的景点、餐厅尽量聚在同一个区域。
+- 预算感：预算不高时优先免费/低价景点，但每天保留 1~2 个这座城市必去的特色景点
+  （哪怕收费，选最有代表性、门票最值的那个）；餐厅优先平价但有本地特色的小店
+  （小吃、老字号、苍蝇馆子），别为了省钱把三餐都安排成便利店或奶茶——特色美食值得花。
+- 酒店选交通方便、离主要游玩区域近的；预算紧时选经济型。
+- 晚上如果候选里有合适的夜市/夜游安排到 evening，没有就写自由活动。
 
 输出 JSON 结构：
 {
@@ -102,7 +136,7 @@ COMPOSE_SYSTEM_PROMPT = """你是一名行程规划师。根据给定的候选�
       "meals": {"lunch": {候选餐厅对象}, "dinner": {候选餐厅对象}}
     }
   ],
-  "meta": {"data_source": "local 或 fallback", "adjust_rounds": 0, "degraded": false}
+  "meta": {"data_source": "online 或 fallback", "adjust_rounds": 0, "degraded": false}
 }"""
 
 COMPOSE_USER_TEMPLATE = """旅行需求：
@@ -249,9 +283,12 @@ class Planner:
             {"role": "system", "content": COMPOSE_SYSTEM_PROMPT},
             {"role": "user", "content": user_msg},
         ]
-        last_error: Exception | None = None
         for attempt in range(2):
-            resp = await self.llm.chat(messages, temperature=0.3, max_tokens=4000)
+            try:
+                resp = await self.llm.chat(messages, temperature=0.3, max_tokens=4000)
+            except Exception:
+                # 网络/超时等调用级故障：拼错误重试没用，直接降级模板编排
+                break
             try:
                 itinerary = Itinerary.model_validate(parse_json_text(resp.text))
                 itinerary = self._canonicalize(itinerary, pools, request)
@@ -261,14 +298,12 @@ class Planner:
                 itinerary.meta.degraded = False
                 return itinerary
             except (ValidationError, ValueError) as e:
-                last_error = e
                 if attempt == 0:
                     messages = messages[:2] + [
                         {"role": "assistant", "content": resp.text},
                         {"role": "user", "content": COMPOSE_RETRY_TEMPLATE.format(error=str(e))},
                     ]
-        assert last_error is not None
-        # 降级：不再调 LLM，用确定性模板编排并标注（prompt设计.md 2.4 节）
+        # 降级：LLM 不可用（网络/超时）或输出非法，用确定性模板编排并标注
         return template_compose(request, pools, weather, data_source=data_source)
 
     def _collect_pools(self, results: list[InfoResult]) -> CandidatePools:
@@ -383,6 +418,8 @@ class Planner:
                 current = self._apply_downgrade(current, s.to_tier)
             elif s.action == "replace_paid_attraction":
                 current = self._apply_replace_attraction(current, s.target)
+            elif s.action == "replace_expensive_restaurant":
+                current = self._apply_replace_restaurant(current, s.target)
             elif s.action == "reduce_daily_activities":
                 current = self._apply_reduce_activities(current)
         return current
@@ -426,6 +463,40 @@ class Planner:
                 if replacement is None:
                     continue
                 slot.attraction = replacement
+                return _revalidate(updated)
+        return itinerary
+
+    def _apply_replace_restaurant(
+        self, itinerary: Itinerary, target: str | None
+    ) -> Itinerary:
+        """正餐换平价：找同餐段（lunch/dinner）里更便宜且未被使用的候选。
+        没有更便宜的就不换——特色贵店留着，别省过头。
+        """
+        if target is None:
+            return itinerary
+        pools = self._require_pools()
+        updated = itinerary.model_copy(deep=True)
+        for day in updated.days:
+            for meal_key in ("lunch", "dinner"):
+                rest = getattr(day.meals, meal_key)
+                if rest is None or rest.name != target:
+                    continue
+                used = {r.name for d in updated.days for r in d.restaurants()}
+                used.discard(target)
+                options = [
+                    r
+                    for r in pools.restaurants
+                    if r.name not in used
+                    and meal_key in r.meals
+                    and r.price_per_person < rest.price_per_person
+                ]
+                if not options:
+                    continue
+                replacement = min(options, key=lambda r: r.price_per_person)
+                if meal_key == "lunch":
+                    day.meals.lunch = replacement
+                else:
+                    day.meals.dinner = replacement
                 return _revalidate(updated)
         return itinerary
 
@@ -530,7 +601,14 @@ def template_compose(
     comfort = sorted(
         (h for h in pools.hotels if h.tier == "舒适型"), key=lambda h: h.price_per_night
     )
-    hotel = comfort[0] if comfort else min(pools.hotels, key=lambda h: h.price_per_night)
+    economy = sorted(
+        (h for h in pools.hotels if h.tier == "经济型"), key=lambda h: h.price_per_night
+    )
+    # 预算偏紧（人均每日低于阈值）默认经济型，穷游姿态；否则中档舒适型
+    if request.budget / max(request.days, 1) <= config.BUDGET_TIGHT_PER_DAY and economy:
+        hotel = economy[0]
+    else:
+        hotel = comfort[0] if comfort else min(pools.hotels, key=lambda h: h.price_per_night)
 
     used_restaurants: set[str] = set()
 

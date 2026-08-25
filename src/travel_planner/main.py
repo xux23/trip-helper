@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
+import time
 from pathlib import Path
 
 
@@ -46,7 +47,7 @@ if _SRC_ROOT not in sys.path:
 from travel_planner import config
 from travel_planner.agents.budget import BudgetAgent
 from travel_planner.llm import make_llm_client
-from travel_planner.orchestrator import PlanEvent, PlanState, stream_plan
+from travel_planner.orchestrator import PlanEvent, PlanState, UnclearRequest, stream_plan
 from travel_planner.tools.amap import QuotaExhaustedError, QuotaTracker
 
 WEATHER_ICON = {"晴": "☀", "多云": "⛅", "阴": "☁", "小雨": "🌦", "大雨": "🌧"}
@@ -64,6 +65,13 @@ STATUS_LABELS = {"ok": "预算合适", "over": "预算超标", "under": "预算�
 
 def render_itinerary(state: PlanState) -> str:
     it, report = state.itinerary, state.report
+    student = bool(state.request.student)
+
+    def meal_txt(r) -> str:
+        if student and r.groupon_price is not None and r.groupon_price < r.price_per_person:
+            return f"（团购人均 {r.groupon_price} 元，{r.area}）"
+        return f"（人均 {r.price_per_person} 元，{r.area}）"
+
     lines: list[str] = []
     lines.append("=" * 56)
     lines.append(f"✈ {it.destination} {len(it.days)} 日行程单")
@@ -83,11 +91,11 @@ def render_itinerary(state: PlanState) -> str:
         )
         date_txt = day.date or "日期未定"
         lines.append(f"—— 第 {day.day} 天 · {date_txt} · {weather_txt} ——")
-        lines.append(f"  上午　{describe_attraction(day.morning.attraction)}")
-        lines.append(f"  下午　{describe_attraction(day.afternoon.attraction)}")
+        lines.append(f"  上午　{describe_attraction(day.morning.attraction, student)}")
+        lines.append(f"  下午　{describe_attraction(day.afternoon.attraction, student)}")
         evening = day.evening
         if evening.attraction is not None:
-            lines.append(f"  晚上　{describe_attraction(evening.attraction)}")
+            lines.append(f"  晚上　{describe_attraction(evening.attraction, student)}")
         elif evening.restaurant is not None:
             r = evening.restaurant
             lines.append(
@@ -96,12 +104,14 @@ def render_itinerary(state: PlanState) -> str:
         else:
             lines.append(f"  晚上　{evening.text}")
         lunch, dinner = day.meals.lunch, day.meals.dinner
-        lines.append(f"  午餐　{lunch.name}（人均 {lunch.price_per_person} 元，{lunch.area}）")
-        lines.append(f"  晚餐　{dinner.name}（人均 {dinner.price_per_person} 元，{dinner.area}）")
+        lines.append(f"  午餐　{lunch.name}{meal_txt(lunch)}")
+        lines.append(f"  晚餐　{dinner.name}{meal_txt(dinner)}")
         lines.append("")
 
     lines.extend(render_report(report))
     notes: list[str] = []
+    if student:
+        notes.append("已按学生票（景点约半价）与团购价（餐饮约 8.5 折）估算")
     if any(r.source == "fallback" for r in state.results):
         notes.append("部分数据来自兜底数据源（source=fallback）")
     if it.meta.degraded:
@@ -113,8 +123,13 @@ def render_itinerary(state: PlanState) -> str:
     return "\n".join(lines)
 
 
-def describe_attraction(a) -> str:
-    price = f"{a.price} 元门票" if a.price else "免费"
+def describe_attraction(a, student: bool = False) -> str:
+    if student and a.student_price is not None:
+        price = f"学生票 {a.student_price} 元（原价 {a.price}）"
+    elif a.price:
+        price = f"{a.price} 元门票"
+    else:
+        price = "免费"
     tags = "/".join(a.tags[:2])
     return f"{a.name}（{price}，约 {a.duration_hours:g} 小时，{a.area}，{tags}）"
 
@@ -148,17 +163,135 @@ def stream_print(text: str) -> None:
         sys.stdout.flush()
 
 
-def render_search_list(results, city: str, keyword: str, source: str) -> str:
-    """搜索模式结果渲染：名称（免费/估算价，区域，评分，标签）。"""
+# ============================================================================
+# 思考动画：等待 LLM / 高德查询期间转圈 + 实时耗时；完成阶段打勾并记录用时
+# ============================================================================
+
+SPINNER_FRAMES = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+
+_spinner_task: asyncio.Task | None = None
+_spinner_label = ""
+_spinner_start = 0.0
+
+
+def _start_thinking(label: str) -> None:
+    """启动/更新"思考中"动画（后台任务在同一行重绘）。重复调用只换文案和计时起点。"""
+    global _spinner_task, _spinner_label, _spinner_start
+    _spinner_label = label
+    _spinner_start = time.monotonic()
+    if _spinner_task is None or _spinner_task.done():
+        _spinner_task = asyncio.create_task(_spin())
+
+
+def _resume_thinking() -> None:
+    """动画被临时打断（如打印 ℹ 提示）后恢复，计时不中断。"""
+    global _spinner_task
+    if _spinner_task is None or _spinner_task.done():
+        _spinner_task = asyncio.create_task(_spin())
+
+
+async def _spin() -> None:
+    i = 0
+    try:
+        while True:
+            elapsed = time.monotonic() - _spinner_start
+            sys.stdout.write(f"\r{SPINNER_FRAMES[i]} {_spinner_label} {elapsed:.1f}s")
+            sys.stdout.flush()
+            i = (i + 1) % len(SPINNER_FRAMES)
+            await asyncio.sleep(0.1)
+    except asyncio.CancelledError:
+        pass
+
+
+def _stop_thinking() -> float:
+    """停止动画并清掉该行（同步，任何上下文可调），返回本次动画时长（秒）。"""
+    global _spinner_task
+    elapsed = time.monotonic() - _spinner_start if _spinner_task else 0.0
+    if _spinner_task and not _spinner_task.done():
+        _spinner_task.cancel()
+    _spinner_task = None
+    sys.stdout.write("\r" + " " * 88 + "\r")
+    sys.stdout.flush()
+    return elapsed
+
+
+def _print_line(text: str) -> None:
+    """清掉动画行后整行打印（打印前必须清，否则与动画行混在一起）。"""
+    _stop_thinking()
+    stream_print(text)
+
+
+def _finalize_stage(label: str | None) -> None:
+    """一个阶段完成：清动画 → 打勾并记录该阶段耗时。"""
+    if not label:
+        return
+    elapsed = _stop_thinking()
+    print(f"✓ {label}（{elapsed:.1f}s）")
+    sys.stdout.flush()
+
+
+def render_search_list(
+    results, city: str, keyword: str, source: str, student: bool = False, web_hits: list | None = None
+) -> str:
+    """搜索模式结果渲染：名称（免费/学生票/估算价，区域，评分，标签）+ 网上攻略摘录。"""
     lines = [f"🔎 {city}「{keyword or '景点'}」搜索结果（{len(results)} 条）"]
     if source == "fallback":
         lines.append("* 高德在线查询失败，以下为通用兜底数据")
     for i, a in enumerate(results, 1):
-        price = "免费" if a.price == 0 else f"{a.price} 元（估算）"
+        if a.price == 0:
+            price = "免费"
+        elif student and a.student_price is not None:
+            price = f"学生票 {a.student_price} 元"
+        else:
+            price = f"{a.price} 元（估算）"
         tags = "/".join(a.tags[:3]) or "无标签"
         area = a.area or "区域未知"
         lines.append(f"{i:>2}. {a.name}（{price}，{area}，评分 {a.rating}，{tags}）")
+    if web_hits:
+        lines.append("")
+        lines.append("💡 网上攻略摘录：")
+        for h in web_hits[:2]:
+            title = h.get("title") or ""
+            snippet = (h.get("snippet") or "").strip()
+            lines.append(f"  · {title}：{snippet}")
     return "\n".join(lines)
+
+
+def _relatable_costs(amount: int) -> str:
+    """把金额换算成普通人有体感的参照物（奶茶/火锅/电影票）。"""
+    items = []
+    if amount >= 15:
+        items.append(f"{amount // 15} 杯奶茶")
+    if amount >= 100:
+        items.append(f"{amount // 100} 顿人均百元的火锅")
+    if amount >= 50:
+        items.append(f"{amount // 50} 张电影票")
+    return "，或 ".join(items[:2]) if items else f"{amount} 元"
+
+
+def render_budget_unfeasible(report, destination: str, days: int) -> str:
+    """预算不现实：回环后仍超标，不硬排行程，给出最低可行预算与同类比价。"""
+    minimum = report.estimated_total
+    suggestion = round(minimum * 1.1 / 100) * 100  # 留 10% 余量、取整到百
+    per_day = round(minimum / days) if days else minimum
+    advice = [f"  1. 提高预算到 {suggestion} 元左右再试"]
+    if days > 1:
+        advice.append("  2. 减少游玩天数")
+        advice.append("  3. 换个消费更低的目的地")
+    else:  # 1 天行程没法再减天数
+        advice.append("  2. 换个消费更低的目的地")
+    return "\n".join([
+        "⚠ 预算不现实，这次就不硬排行程了",
+        f"你给的预算是人均 {report.budget} 元，但按省着玩的思路，{destination} {days} 天",
+        f"最省也要约 {minimum} 元/人：",
+        f"  · 相当于每天约 {per_day} 元（含住宿、餐饮、交通、门票）",
+        f"  · 大约等于 {_relatable_costs(minimum)}",
+        "",
+        "建议：",
+        *advice,
+        "",
+        f"（重新规划：在输入里说清新预算即可，例如「{destination}玩2天，预算{suggestion}」）",
+    ])
 
 
 def print_request_summary(request) -> None:
@@ -169,6 +302,10 @@ def print_request_summary(request) -> None:
         f"  ➤ 人均预算：{request.budget} 元",
         f"  ➤ 偏好：{prefs}",
     ]
+    if request.party_size > 1:
+        parts.append(f"  ➤ 人数：{request.party_size} 人")
+    if request.student:
+        parts.append("  ➤ 人群：学生（按学生票/团购价估算）")
     if request.departure_city:
         parts.append(f"  ➤ 出发城市：{request.departure_city}")
     if request.date:
@@ -187,7 +324,11 @@ MENU = """
 
 
 class CLI:
-    """input() 的薄封装，便于测试替换。"""
+    """input() 的薄封装，便于测试替换。
+
+    - EOFError（stdin 关闭）→ 返回 None，由上层区分"普通回车"与"输入流已结束"；
+    - KeyboardInterrupt 不吞掉，上抛后由 cli() 统一打印"已取消"。
+    """
 
     def ask(self, prompt: str) -> str | None:
         try:
@@ -196,7 +337,9 @@ class CLI:
             return None
 
     def notify(self, message: str) -> None:
+        _stop_thinking()  # 打印前先清动画行
         print(f"ℹ {message}")
+        _resume_thinking()  # 恢复动画，计时不中断
 
 
 def adjustment_loop(state: PlanState, io: CLI) -> None:
@@ -257,7 +400,7 @@ def _adjust_attraction(state: PlanState, planner, io: CLI, budget_agent: BudgetA
     if not alternatives:
         raise ValueError("候选池中没有可替换的景点了")
     for i, a in enumerate(alternatives, 1):
-        print(f"  {i}. {describe_attraction(a)}")
+        print(f"  {i}. {describe_attraction(a, bool(state.request.student))}")
     pick = _pick_number(io, "选择新景点序号：", len(alternatives))
     if pick is None:
         raise ValueError("无效选择")
@@ -322,27 +465,51 @@ async def _amain(argv: list[str]) -> int:
     if argv:
         user_input = " ".join(argv)
     else:
-        user_input = (CLI().ask("您的旅行需求：") or "").strip()
+        # 空输入不直接退出：最多重问 3 次（防误触回车/终端偶发空行）；
+        # stdin 已关闭（EOF）则明确提示后退出。
+        user_input = ""
+        for _ in range(3):
+            answer = CLI().ask("说说你想怎么玩？")
+            if answer is None:
+                print("没有收到输入，程序退出。")
+                return 1
+            user_input = answer.strip()
+            if user_input:
+                break
+            print("没听清，再说说？")
     if not user_input:
-        print("需求不能为空")
-        return 1
+        print("好的，那下次再玩 👋")
+        return 0
 
     io = CLI()
     state: PlanState | None = None
+    pending_stage: str | None = None
     try:
         async for event in stream_plan(user_input, llm, io):
             if event.stage == "stage":
-                print(event.payload)
-                sys.stdout.flush()
+                _finalize_stage(pending_stage)  # 上一条打勾并记录耗时
+                pending_stage = event.payload
+                _start_thinking(pending_stage)  # 当前阶段转圈 + 实时耗时
             elif event.stage == "request":
+                _finalize_stage(pending_stage)
+                pending_stage = None
                 print_request_summary(event.payload)
             elif event.stage == "done":
+                _finalize_stage(pending_stage)
+                pending_stage = None
+                _stop_thinking()
                 state = event.payload
+    except UnclearRequest as e:  # 需求不清晰且追问无果：不开始安排
+        _stop_thinking()
+        print(f"\n{e}")
+        return 1
     except QuotaExhaustedError as e:  # 配额耗尽：停止整个程序（用户约定）
+        _stop_thinking()
         print(f"\n{e}")
         print("高德免费配额已用完，程序停止。请明天再试，或在 .env 调整 AMAP_DAILY_LIMIT_* 后重启。")
         return 3
     except Exception as e:  # 文档第 9 章：LLM 故障给出可操作的提示
+        _stop_thinking()
         print(f"规划失败：{e}")
         print("请检查 LLM_BASE_URL / LLM_API_KEY 配置与网络连接后重试。")
         return 1
@@ -358,7 +525,16 @@ async def _amain(argv: list[str]) -> int:
                 state.request.destination,
                 state.request.search_keyword,
                 state.search_source,
+                student=bool(state.request.student),
+                web_hits=state.web_hits,
             )
+        )
+        return 0
+
+    if state.report is not None and state.report.status == "over":
+        # 预算不现实：不输出强行安排的行程，改为提示（回环后仍超标）
+        stream_print(
+            render_budget_unfeasible(state.report, state.request.destination, state.request.days)
         )
         return 0
 
@@ -373,6 +549,7 @@ def cli() -> None:
         sys.exit(asyncio.run(_amain(sys.argv[1:])))
     except KeyboardInterrupt:
         # Ctrl+C 时干净退出，不把 asyncio 内部的 CancelledError 栈打印给用户
+        _stop_thinking()
         print("\n已取消")
         sys.exit(130)
 

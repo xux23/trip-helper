@@ -40,6 +40,8 @@ _load_dotenv()
 LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://api.openai.com/v1")
 LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
 LLM_MODEL = os.environ.get("LLM_MODEL", "gpt-4o-mini")
+# 单次 LLM 调用超时（秒）：兼容慢速服务商（编排大 JSON 可能 40s+）
+LLM_TIMEOUT = float(os.environ.get("LLM_TIMEOUT", "180"))
 
 # ---- 故障注入开关（面试演示兜底用，文档 4.2 节）----
 
@@ -87,6 +89,14 @@ def amap_daily_limits() -> dict[str, int]:
 # ---- 编排 ----
 
 MAX_ADJUST_ROUNDS = 2  # 预算回环上限（文档 8.3）
+BUDGET_TIGHT_PER_DAY = 500  # 人均每日预算低于此 → 默认经济型酒店（穷游姿态）
+
+
+# 免费网页搜索的源顺序（逗号分隔）。国内默认只用必应中国（cn.bing.com 可直连）；
+# 网络允许时可用 "bing,wikipedia,duckduckgo" 扩展后备源。
+WEB_SEARCH_SOURCES = os.environ.get(
+    "WEB_SEARCH_SOURCES", "bing"
+).split(",")
 
 
 # ---- 预算估算规则（文档 7.1 / 8.1 / 8.2）----
@@ -99,6 +109,7 @@ OVER_THRESHOLD = 1.05  # total > budget*1.05 判 over
 UNDER_THRESHOLD = 0.5  # total < budget*0.5 判 under
 LODGING_RATIO_THRESHOLD = 0.40  # 住宿占比超过则建议降档
 REPLACE_PAID_MAX = 2  # 每轮最多替换的付费景点数
+FOOD_MEAL_BUDGET = 70  # 人均单餐预算：正餐超过此价 → 建议换平价特色店（穷游）
 
 
 # ---- 酒店档位价位区间（文档 7.2），也是降档顺序依据 ----

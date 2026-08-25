@@ -10,6 +10,10 @@ from travel_planner.schemas import Attraction
 from tests.conftest import StubLLM, extract_response, run
 
 
+async def _no_web(self, city, keyword):  # 桩：免费网页搜索在单测里不碰网络
+    return [], "fallback"
+
+
 def test_extract_search_keyword():
     llm = StubLLM([extract_response(search_keyword="免费", days=None, budget=None)])
     outcome = run(Planner(llm).extract_request("找成都免费景点"))
@@ -38,6 +42,7 @@ def test_plan_search_mode_skips_days_budget_questions(monkeypatch):
             return ""
 
     monkeypatch.setattr("travel_planner.agents.info.InfoAgent.search", fake_search)
+    monkeypatch.setattr("travel_planner.agents.info.InfoAgent.web_info", _no_web)
     io = NoAskIO()
     llm = StubLLM([extract_response(search_keyword="免费", days=None, budget=None)])
     state = asyncio.run(plan("找成都免费景点", llm, io))
@@ -55,6 +60,7 @@ def test_plan_search_mode_returns_results(monkeypatch):
         return [canned], "online"
 
     monkeypatch.setattr("travel_planner.agents.info.InfoAgent.search", fake_search)
+    monkeypatch.setattr("travel_planner.agents.info.InfoAgent.web_info", _no_web)
     llm = StubLLM([extract_response(search_keyword="免费", days=None, budget=None)])
     state = asyncio.run(plan("找成都免费景点", llm, SilentIO()))
     assert state.search_results == [canned]
@@ -71,6 +77,7 @@ def test_search_fallback_source_on_failure(monkeypatch):
         raise OSError("网络不可用")
 
     monkeypatch.setattr(search_tool, "search_pois", broken)
+    monkeypatch.setattr("travel_planner.agents.info.InfoAgent.web_info", _no_web)
     llm = StubLLM([extract_response(search_keyword="免费", days=None, budget=None)])
     state = asyncio.run(plan("找成都免费景点", llm, SilentIO()))
     assert state.search_source == "fallback"

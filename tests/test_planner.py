@@ -10,11 +10,12 @@ from travel_planner.agents.planner import (
     parse_json_text,
     template_compose,
 )
-from travel_planner.schemas import EveningSlot, Suggestion
+from travel_planner.schemas import EveningSlot, Restaurant, Suggestion
 from tests.conftest import (
     StubLLM,
     extract_response,
     fetch_chengdu_state,
+    make_request,
     run,
 )
 
@@ -93,6 +94,23 @@ def test_compose_llm_path_canonicalizes():
             assert a.name in pool_names
 
 
+def test_compose_degrades_on_llm_network_error():
+    """编排阶段 LLM 网络/超时 → 降级模板编排，不崩流程。"""
+    request, results, weather, pools = fetch_chengdu_state()
+
+    class BoomLLM:
+        model = "boom"
+
+        async def chat(self, messages, *, temperature: float, max_tokens: int):
+            raise RuntimeError("LLM 调用失败（已重试 1 次）：Request timed out.")
+
+    itin = run(Planner(BoomLLM()).compose_itinerary(request, results, weather))
+    assert itin.meta.degraded is True
+    assert len(itin.days) == request.days
+    for day in itin.days:
+        assert day.meals.lunch and day.meals.dinner
+
+
 def test_compose_rejects_fabricated_names_and_degrades():
     request, results, weather, pools = fetch_chengdu_state()
     fabricated = template_compose(request, pools, weather).model_copy(deep=True)
@@ -110,6 +128,19 @@ def test_compose_rejects_fabricated_names_and_degrades():
 
 def test_parse_json_tolerates_markdown_fence():
     assert parse_json_text('```json\n{"a":1}\n```') == {"a": 1}
+
+
+def test_template_hotel_budget_aware():
+    """预算偏紧（人均每日 ≤ 阈值）模板默认经济型，宽松默认舒适型。"""
+    req_tight = make_request(budget=600)  # 600/3 = 200 元/天
+    _, _, weather_t, pools_t = fetch_chengdu_state(req_tight)
+    itin_tight = template_compose(req_tight, pools_t, weather_t)
+    assert itin_tight.hotel.tier == "经济型"
+
+    req_ok = make_request(budget=3000)  # 3000/3 = 1000 元/天
+    _, _, weather_o, pools_o = fetch_chengdu_state(req_ok)
+    itin_ok = template_compose(req_ok, pools_o, weather_o)
+    assert itin_ok.hotel.tier == "舒适型"
 
 
 # ---- 建议执行 ----
@@ -136,6 +167,27 @@ def test_apply_replace_paid_uses_free_candidate():
     assert any(a.price == 0 for d in out.days for a in d.attractions()) or any(
         a.price < paid.price for d in out.days for a in d.attractions()
     )
+
+
+def test_apply_replace_expensive_restaurant():
+    """正餐换平价：同餐段更便宜的未用候选；没有更便宜的不换（别省过头）。"""
+    request, results, weather, pools = fetch_chengdu_state()
+    itin = template_compose(request, pools, weather).model_copy(deep=True)
+    expensive = Restaurant(
+        name="贵价餐厅", tags=["美食"], price_per_person=150, meals=["lunch"],
+        rating=4.5, area="青羊区",
+    )
+    itin.days[0].meals.lunch = expensive
+
+    planner = Planner(None)
+    planner._pools = pools
+    out = planner.apply_suggestions(
+        itin, [Suggestion(action="replace_expensive_restaurant", target="贵价餐厅")]
+    )
+    new_lunch = out.days[0].meals.lunch
+    assert new_lunch.name != "贵价餐厅"
+    assert new_lunch.price_per_person < 150
+    assert "lunch" in new_lunch.meals  # 同餐段兼容
 
 
 def test_apply_reduce_removes_evening_attraction():
